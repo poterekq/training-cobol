@@ -1,0 +1,233 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS02.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 14 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STRUCTURE DES TABLES DB2 ---------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE REJETS
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE MESSDB2
+           END-EXEC
+
+      *STRUCTURES POUR SQLCA ------------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *ZONES D'ECHANGE ------------------------------------------------
+
+       01 WS-LIGNE.
+          02 WS-NUMLN          PIC X(06).
+          02 WS-NOMPGM         PIC X(08).
+          02 WS-MAT            PIC X(06).
+          02 WS-NUMERR         PIC X(03).
+          02 WS-MES            PIC X(60).
+
+      *DEFINITION DES CURSEURS ----------------------------------------
+
+           EXEC SQL
+              DECLARE CURSEUR_1 CURSOR FOR
+                 SELECT R.NUMLN, R.NOMPGM, R.MAT, R.NUMERR, M.MES
+                 FROM REJETS AS R
+                    INNER JOIN MESSDB2 AS M
+                    ON (R.NUMERR = M.NUM)
+                 ORDER BY R.NUMLN, R.NUMERR
+              FOR FETCH ONLY
+           END-EXEC
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-FLAG               PIC 9(01).
+
+       01 L-SQLCODE            PIC S9(4) COMP.
+
+       01 L-LIGNE.
+          02 L-NUMLN           PIC X(06).
+          02 L-NOMPGM          PIC X(08).
+          02 L-MAT             PIC X(06).
+          02 L-NUMERR          PIC X(03).
+          02 L-MES             PIC X(60).
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *////////////////////////////////////////////////////
+       PROCEDURE DIVISION USING L-SQLCODE, L-FLAG, L-LIGNE.
+      *////////////////////////////////////////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-TRAITER
+           .
+
+
+      *BLOCS 200S - TRAITER LES DONNEES
+      *--------------------------------
+
+       100-TRAITER.
+           PERFORM 110-GERER-FLAG
+           IF L-FLAG = 2
+              PERFORM 120-FETCH-CURSEUR
+              PERFORM 130-ALIMENTER-LINKAGE
+           END-IF
+           .
+
+
+       110-GERER-FLAG.
+           EVALUATE L-FLAG
+              WHEN 1
+                 PERFORM 111-OUVRIR-CURSEUR
+              WHEN 2
+                 CONTINUE
+              WHEN 3
+                 PERFORM 112-FERMER-CURSEUR
+              WHEN OTHER
+                 DISPLAY 'ÝMAOPTS02¨ LA VALEUR DU FLAG
+      -    'DOIT ETRE DE 1, 2 OU 3!'
+                 MOVE 16 TO RETURN-CODE
+                 PERFORM FIN-PROGRAMME
+           END-EVALUATE
+           .
+
+
+       111-OUVRIR-CURSEUR.
+           EXEC SQL
+              OPEN CURSEUR_1
+           END-EXEC
+           .
+
+
+       112-FERMER-CURSEUR.
+           EXEC SQL
+              CLOSE CURSEUR_1
+           END-EXEC
+           .
+
+
+       120-FETCH-CURSEUR.
+           EXEC SQL
+              FETCH CURSEUR_1
+              INTO :WS-NUMLN,
+                   :WS-NOMPGM,
+                   :WS-MAT,
+                   :WS-NUMERR,
+                   :WS-MES
+           END-EXEC
+           .
+
+
+       130-ALIMENTER-LINKAGE.
+           MOVE WS-NUMLN  TO L-NUMLN
+           MOVE WS-NOMPGM TO L-NOMPGM
+           MOVE WS-MAT    TO L-MAT
+           MOVE WS-NUMERR TO L-NUMERR
+           MOVE WS-MES    TO L-MES
+           MOVE SQLCODE   TO L-SQLCODE
+           .
+
+
+
+
+      *BLOCS DB2 - GESTION DB2
+      *-----------------------
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           PERFORM FIN-PROGRAMME
+           .

@@ -1,0 +1,80 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PGM31PP.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 JANVIER 2022.
+
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *      IBM-370.
+             IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER.
+             IBM-370.
+
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+      *VARIABLES UTILITAIRES
+
+       01 ZE.
+         02 ZE-AUTEUR          PIC X(8).
+         02 ZE-NE-EN           PIC ZZZ9.
+         02 ZE-LIEU            PIC X(20).
+         02 ZE-RAYON           PIC 9.
+
+       01 FLAG                 PIC 9 VALUE 0.
+
+       01 DB.
+         02 DB-RAYONS          PIC X(8) VALUE 'RAYONS '.
+         02 DB-AUTEURS         PIC X(8) VALUE 'AUTEURS'.
+
+       01 SQLCODE              PIC S9(4) COMP VALUE ZERO.
+
+       01 SP.
+         02 SP1                PIC X(7) VALUE 'PGM31SP'.
+
+       PROCEDURE DIVISION.
+           PERFORM RACINE
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+
+      *CORPS D'EXECUTION DU PROGRAMME
+
+
+       RACINE.
+           MOVE 1 TO FLAG
+           CALL SP1 USING DB-RAYONS, FLAG, ZE, SQLCODE
+           MOVE 2 TO FLAG
+           CALL SP1 USING DB-RAYONS, FLAG, ZE, SQLCODE
+
+      *    ITERER SUR LES RAYONS DE LA SALLE FOURNIE EN PARM
+           PERFORM UNTIL SQLCODE NOT = ZERO
+             MOVE 1 TO FLAG
+             CALL SP1 USING DB-AUTEURS, FLAG, ZE, SQLCODE
+             MOVE 2 TO FLAG
+             CALL SP1 USING DB-AUTEURS, FLAG, ZE, SQLCODE
+
+      *      ITERER SUR LES AUTEURS DU RAYON ACTUEL
+             PERFORM UNTIL SQLCODE NOT = ZERO
+               DISPLAY ZE
+               MOVE 2 TO FLAG
+               CALL SP1 USING DB-AUTEURS, FLAG, ZE, SQLCODE
+             END-PERFORM
+
+             MOVE ZERO TO SQLCODE
+             MOVE 3 TO FLAG
+             CALL SP1 USING DB-AUTEURS, FLAG, ZE, SQLCODE
+             MOVE 2 TO FLAG
+             CALL SP1 USING DB-RAYONS, FLAG, ZE, SQLCODE
+
+           END-PERFORM
+           MOVE 3 TO FLAG
+           CALL SP1 USING DB-RAYONS, FLAG, ZE, SQLCODE
+           .

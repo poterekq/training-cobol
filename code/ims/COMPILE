@@ -1,0 +1,23 @@
+//API1C    JOB 'SDJ CPLKED DLI',REGION=1M,NOTIFY=&SYSUID,
+//             MSGCLASS=H,TIME=(,5)
+//*
+//*=========================================================*
+//*=========================================================*
+//*  PROCEDURE DE COMPIL/LINK TP COBOL 370, IMS BATCH       *
+//*  REMPLACER   API1 PAR VOTRE USER_ID                     *
+//*  REMPLACER   YYY  PAR LE NUMERO  DU TP                  *
+//*=========================================================*
+//*
+//JOBLIB DD  DSN=CEE.SCEERUN,DISP=SHR
+//APPEL EXEC IGYWCL,PARM.COBOL=(ADV,OBJECT,LIB,TEST,APOST)
+//COBOL.SYSIN DD DSN=API1.SOURCE.IMS(EX31),DISP=SHR
+//COBOL.SYSLIB  DD  DSN=CEE.SCEESAMP,DISP=SHR
+//LKED.SYSLIB   DD  DSN=CEE.SCEELKED,DISP=SHR
+//              DD  DSN=IMS810.SDFSRESL,DISP=SHR
+//LKED.SYSLMOD DD DSN=API1.IMS.LOAD(EX31),DISP=SHR
+//LKED.SYSPRINT DD SYSOUT=*
+//LKED.SYSIN DD *
+  INCLUDE SYSLIB(DFSLI000)
+  ENTRY   DLITCBL
+  NAME    EX31(R)
+/*

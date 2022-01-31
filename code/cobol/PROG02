@@ -1,0 +1,42 @@
+       IDENTIFICATION DIVISION.                                         00010000
+       PROGRAM-ID. PROG02.                                              00020000
+      *************************                                         00030000
+      * TRAITEMENT DU PERFORM *                                         00040000
+      *************************                                         00050000
+       DATA DIVISION.                                                   00051008
+       WORKING-STORAGE SECTION.                                         00052008
+       77  CPT PIC 99 VALUE 5.                                          00053008
+       PROCEDURE DIVISION.                                              00060001
+           DISPLAY 'DEBUT DU PROGRAMME'                                 00070000
+           PERFORM FIN 3 TIMES                                          00080004
+           PERFORM PAR1 THRU PAR3                                       00081005
+           PERFORM 2 TIMES                                              00082007
+             DISPLAY 'PERFORM INSTRUCTION'                              00083006
+           END-PERFORM                                                  00084006
+           PERFORM P05 CPT TIMES                                        00085010
+           PERFORM UNTIL CPT > 12                                       00086011
+             DISPLAY 'CPT = ' CPT                                       00086111
+             ADD 1 TO CPT                                               00086211
+           END-PERFORM                                                  00087011
+           PERFORM ARRET                                                00090011
+           .                                                            00091000
+       P05.                                                             00091108
+           ADD 1 TO CPT                                                 00091208
+           DISPLAY 'CPT = ' CPT                                         00091308
+           .                                                            00091410
+       PAR1.                                                            00092005
+           DISPLAY 'PARAGRAPHE 1'                                       00093005
+           .                                                            00094005
+       PAR2.                                                            00095005
+           DISPLAY 'PARAGRAPHE 2'                                       00096005
+           .                                                            00097005
+       PAR3.                                                            00098005
+           DISPLAY 'PARAGRAPHE 3'                                       00099005
+           .                                                            00099105
+       FIN.                                                             00100000
+           DISPLAY 'FIN DU PROGRAMME'                                   00110004
+           .                                                            00110104
+       ARRET.                                                           00110204
+           DISPLAY 'ARRET'                                              00112004
+           STOP RUN                                                     00113004
+           .                                                            00120000

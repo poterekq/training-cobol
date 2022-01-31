@@ -1,0 +1,85 @@
+       CBL DYNAM
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID. EXCDATE.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 22 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+
+       WORKING-STORAGE SECTION.
+
+       01 FC PIC x(12).
+
+       01 NBJ PIC S9(8) COMP.
+
+       01 AJD.
+         02 FILLER PIC S9(4) COMP VALUE +10.
+         02 FILLER PIC X(10) VALUE '22/12/2021'.
+
+       01 FMT-SIMPLE.
+         02 FILLER PIC S9(4) COMP VALUE +10.
+         02 FILLER PIC X(10) VALUE 'DD/MM/YYYY'.
+
+       01 FMT-COMPLET.
+         02 FILLER PIC S9(4) COMP VALUE +27.
+         02 filler PIC X(27)
+            VALUE 'Wwwwwwwwz ZD Mmmmmmmmz YYYY'.
+
+       01 RESULTAT PIC X(80).
+
+       LINKAGE SECTION.
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+      *    move 160310 to nbj
+
+           CALL 'CEEDAYS' USING AJD FMT-SIMPLE NBJ FC
+           IF FC(1:8) NOT = LOW-VALUE
+             DISPLAY 'ERREUR CEEDAYS: ' FC
+             GOBACK
+           END-IF
+
+           CALL 'CEEDATE' USING NBJ FMT-SIMPLE RESULTAT FC
+           IF FC(1:8) = LOW-VALUE
+             DISPLAY 'FORMAT SIMPLE: ' NBJ ' -> ' RESULTAT
+           ELSE
+             DISPLAY 'ERREUR: ' FC
+           END-IF
+
+           CALL 'CEEDATE' USING NBJ FMT-COMPLET RESULTAT FC
+           IF FC(1:8) = LOW-VALUE
+             DISPLAY 'FORMAT COMPLET: ' NBJ ' -> ' RESULTAT
+           ELSE
+             DISPLAY 'ERREUR: ' FC
+           END-IF
+
+           GOBACK
+           .

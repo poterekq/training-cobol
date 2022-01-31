@@ -1,0 +1,35 @@
+       IDENTIFICATION DIVISION.                                         00010000
+       PROGRAM-ID. PROG01.                                              00020000
+      *********************************                                 00030000
+      * PREMIER PROGRAMME : BIENVENUE *                                 00040000
+      *********************************                                 00050000
+       DATA DIVISION.                                                   00051001
+       WORKING-STORAGE SECTION.                                         00052001
+       77 Z1           PIC X(6) VALUE 'ALBERT'.                         00053001
+       77 TOTO         PIC 999 VALUE 125.                               00054001
+       77 LIG          PIC X(20) VALUE ALL '*'.                         00055003
+       77 LIG-ACCEPT   PIC X(10).                                       00055111
+       01 DAT.                                                          00056005
+          05 AA        PIC X(4).                                        00057005
+          05 MM        PIC X(2).                                        00058005
+          05 JJ        PIC X(2).                                        00059005
+       01 LIGNE.                                                        00059107
+          05 PIC X(8) VALUE 'BONJOUR '.                                 00059207
+          05 LIGNOM PIC X(10).                                          00059307
+          05 PIC X(16) VALUE ' NOUS SOMMES LE '.                        00059407
+          05 JJ PIC X(3).                                               00059507
+          05 MM PIC X(3).                                               00059707
+          05 AA PIC X(4).                                               00059907
+       PROCEDURE DIVISION.                                              00060000
+           DISPLAY 'I DONT HAVE A SUGAR DADDY' ' ' TOTO ' ' Z1          00070004
+           DISPLAY LIG                                                  00071003
+           ACCEPT DAT FROM DATE YYYYMMDD                                00072004
+           MOVE CORR DAT TO LIGNE                                       00072107
+           MOVE 'MARTIN' TO Z1 LIGNOM                                   00072207
+           DISPLAY 'VEUILLEZ TAPER VOTRE NOM : ' UPON CONSOLE           00072312
+           ACCEPT LIG-ACCEPT FROM CONSOLE                               00072412
+           MOVE LIG-ACCEPT TO LIGNOM                                    00072511
+           DISPLAY 'BONJOUR ' Z1 ' NOUS SOMMES LE '                     00073009
+             JJ OF DAT ' ' MM OF DAT ' ' AA OF DAT                      00073110
+           DISPLAY LIGNE                                                00074008
+           STOP RUN.                                                    00080000

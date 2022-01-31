@@ -1,0 +1,199 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PGM31SP.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 JANVIER 2022.
+
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *      IBM-370.
+             IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER.
+             IBM-370.
+
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+      *STRUCTURE DE LA TABLE SQLCA
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC
+
+      *STRUCTURE DE LA TABLE RAYONS
+           EXEC SQL
+             INCLUDE RAYONS
+           END-EXEC
+
+      *STRUCTURE DE LA TABLE AUTEURS
+           EXEC SQL
+             INCLUDE AUTEURS
+           END-EXEC
+
+      *VARIABLES UTILISEES PAR DSNTIAR
+
+       01 ERR-MSG.
+         02 ERR-LONG PIC S9(4) COMP VALUE +720.
+         02 ERR-TXT  PIC X(75) OCCURS 10 TIMES.
+
+       01 ERR-TXT-LONG PIC S9(9) COMP VALUE 72.
+
+       01 I PIC 99.
+
+       01 DBS.
+         02 DB-AUTEURS         PIC X(8) VALUE 'AUTEURS'.
+         02 DB-RAYONS          PIC X(8) VALUE 'RAYONS '.
+
+      *DECLARATION CURSEURS
+
+           EXEC SQL
+             DECLARE C_RAYONS CURSOR FOR
+               SELECT DISTINCT RAYON
+               FROM API1.RAYONS
+             FOR FETCH ONLY
+           END-EXEC
+
+           EXEC SQL
+             DECLARE C_AUTEURS CURSOR FOR
+               SELECT *
+               FROM API1.AUTEURS
+               WHERE RAYON = :DCLRAYONS.RAYON
+             FOR FETCH ONLY
+           END-EXEC
+
+       LINKAGE SECTION.
+
+       01 DB                 PIC X(8).
+
+       01 FLAG               PIC 9.
+
+       01 ZE.
+         02 ZE-AUTEUR PIC X(8).
+         02 ZE-NE-EN  PIC ZZZ9.
+         02 ZE-LIEU   PIC X(20).
+         02 ZE-RAYON  PIC 9.
+
+       01 SQL-RC       PIC S9(4) COMP.
+
+
+       PROCEDURE DIVISION USING DB, FLAG, ZE, SQL-RC.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+
+           PERFORM TRAITEMENT-APPEL
+           IF FLAG = 2
+             EVALUATE DB
+               WHEN DB-RAYONS
+                 PERFORM CURS-RAYONS-FETCH
+               WHEN DB-AUTEURS
+                 PERFORM CURS-AUTEURS-FETCH
+               WHEN OTHER
+                 DISPLAY 'BASE DE DONNEES INCONNUE!'
+                 MOVE 16 TO RETURN-CODE
+             END-EVALUATE
+           END-IF
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+       TRAITEMENT-APPEL.
+           EVALUATE FLAG
+             WHEN 1
+               EVALUATE DB
+                 WHEN DB-RAYONS
+                   PERFORM CURS-RAYONS-OPEN
+                 WHEN DB-AUTEURS
+                   PERFORM CURS-AUTEURS-OPEN
+                 WHEN OTHER
+                   DISPLAY 'BASE DE DONNEES INCONNUE!'
+                   MOVE 16 TO RETURN-CODE
+               END-EVALUATE
+             WHEN 2
+               CONTINUE
+             WHEN 3
+               EVALUATE DB
+                 WHEN DB-RAYONS
+                   PERFORM CURS-RAYONS-CLOSE
+                 WHEN DB-AUTEURS
+                   PERFORM CURS-AUTEURS-CLOSE
+                 WHEN OTHER
+                   DISPLAY 'BASE DE DONNEES INCONNUE!'
+                   MOVE 16 TO RETURN-CODE
+               END-EVALUATE
+             WHEN OTHER
+               DISPLAY 'FLAG INCONNU!'
+               MOVE 16 TO RETURN-CODE
+             END-EVALUATE
+             .
+
+      * PARAGRAPHES UTILITAIRES
+
+       PARAG-ERR.
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           STOP RUN.
+
+
+       TRANSFERT-DONNEES.
+           MOVE SPACES              TO ZE
+           MOVE AUTEUR-TEXT         TO ZE-AUTEUR
+           MOVE NE-EN               TO ZE-NE-EN
+           MOVE LIEU-TEXT           TO ZE-LIEU
+           MOVE RAYON OF DCLAUTEURS TO ZE-RAYON
+           .
+
+
+      *CURSEURS
+
+       CURS-RAYONS-OPEN.
+           EXEC SQL
+             OPEN C_RAYONS
+           END-EXEC
+           .
+
+       CURS-RAYONS-FETCH.
+           INITIALIZE DCLRAYONS
+           EXEC SQL
+             FETCH C_RAYONS
+             INTO :DCLRAYONS
+           END-EXEC
+           PERFORM TRANSFERT-DONNEES
+           MOVE SQLCODE TO SQL-RC
+           .
+
+       CURS-RAYONS-CLOSE.
+           EXEC SQL
+             CLOSE C_RAYONS
+           END-EXEC
+           .
+
+       CURS-AUTEURS-OPEN.
+           EXEC SQL
+             OPEN C_AUTEURS
+           END-EXEC
+           .
+
+       CURS-AUTEURS-FETCH.
+           INITIALIZE DCLAUTEURS
+           EXEC SQL
+             FETCH C_AUTEURS
+             INTO :DCLAUTEURS
+           END-EXEC
+           PERFORM TRANSFERT-DONNEES
+           MOVE SQLCODE TO SQL-RC
+           .
+
+       CURS-AUTEURS-CLOSE.
+           EXEC SQL
+             CLOSE C_AUTEURS
+           END-EXEC
+           .

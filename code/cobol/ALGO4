@@ -1,0 +1,228 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. ALGO4.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 03 DECEMBRE 2021
+
+      * --------------------------------------
+      * ALGORITHME 4 - ASSORTIMENT DE FICHIERS
+      * --------------------------------------
+
+      *
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT REGIONS ASSIGN TO REGIONS
+             FILE STATUS WS-REG.
+           SELECT MVT ASSIGN TO MVT
+             FILE STATUS WS-MVT.
+           SELECT RECAP ASSIGN TO RECAP
+             FILE STATUS WS-REC.
+      *
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD REGIONS RECORDING F.
+       01 EREGIONS.
+         05 REG-IMM       PIC 9(3).
+         05 REG-CODE      PIC X(2).
+         05 REG-NUMERO    PIC 9(2).
+         05 REG-NOM       PIC X(10).
+         05 FILLER        PIC X(63).
+       FD MVT RECORDING F.
+       01 EMVT.
+         05 MVT-IMM       PIC 9(2).
+         05 MVT-CODE      PIC X(2).
+         05 MVT-REGION    PIC 9(2).
+         05 MVT-AGENCE    PIC X(2).
+         05 MVT-VENDEUR   PIC X(2).
+         05 MVT-NB-DOSS   PIC 9(3).
+         05 FILLER        PIC X(67).
+       FD RECAP RECORDING F.
+       01 ERECAP          PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      * INDICATEURS DE STATUT DES FICHIERS
+       77 WS-REG     PIC XX.
+       77 WS-MVT     PIC XX.
+       77 WS-REC     PIC XX.
+
+      * VARIABLES DE TRAVAIL SUR LES FICHIERS
+       77 WS-ID-MVT  PIC 9(3) VALUE 100.
+       77 WS-ID-REG  PIC 9(3) VALUE 100.
+       77 WS-IMM-REC PIC 9(3) VALUE 1.
+       77 WS-NOM-REGION   PIC X(2) VALUE SPACE.
+       77 WS-CODE-REGION  PIC X(2) VALUE SPACE.
+       77 WS-CODE-AGENCE  PIC X(2) VALUE SPACE.
+
+      * COMPTEURS POUR LES DOSSIERS
+       77 WS-NB-DOSSIERS-AGC   PIC 9(3) VALUE 0.
+       77 WS-NB-DOSSIERS-REG   PIC 9(3) VALUE 0.
+
+      * LIGNE A ECRIRE DANS LE FICHIER RECAPITULATIF
+       01 WS-LIGNE-ENR.
+         05 WSL-IMM            PIC X(2).
+         05 WSL-CODE           PIC X(3).
+         05 WSL-REGION         PIC X(2).
+         05 WSL-BODY           PIC X(73).
+       01 CRT-C400.
+         10 WSL-AGENCE       PIC X(2).
+         10 WSL-DOSSIERS     PIC 9(3).
+         10 FILLER           PIC X(68).
+       01 CRT-C500.
+         10 WSL-AGENCE       PIC X(2) VALUE '00'.
+         10 WSL-NOM-REGION   PIC X(10).
+         10 WSL-DOSSIERS     PIC 9(3).
+         10 FILLER           PIC X(58).
+       01 CRT-C999 PIC X(73) VALUE SPACE.
+
+      * CREATION D'UN STOCKAGE ET D'UNE TABLE POUR TRAITER LES REGIONS
+       77 WS-TMP-IMM           PIC 9(3).
+       77 WS-TR-MAX-LENGTH     PIC 99 VALUE 10.
+       01 TABLE-REGIONS.
+         05 TR-ITEM OCCURS 10.
+           10 TR-IMM      PIC 9(3) VALUE ZERO.
+           10 TR-CODE     PIC X(2) VALUE LOW-VALUE.
+           10 TR-NUMERO   PIC X(2) VALUE LOW-VALUE.
+           10 TR-NOM      PIC X(10) VALUE LOW-VALUE.
+           10 FILLER      PIC X(63).
+
+      *
+       PROCEDURE DIVISION.
+
+      * OUVERTURE DU FICHIER REGION, TEST D'INTEGRITE ET
+      * REMPLISSAGE DU TABLEAU TABLE-REGIONS
+           OPEN INPUT REGIONS
+           PERFORM TEST-STAT-REG
+           READ REGIONS
+           PERFORM TEST-STAT-REG
+
+           PERFORM UNTIL WS-REG = '10'
+             PERFORM TEST-STAT-REG
+             IF REG-NUMERO > WS-TR-MAX-LENGTH OR REG-NUMERO < 0
+               DISPLAY 'REGION INCONNUE: ' REG-NUMERO
+               MOVE 20 TO RETURN-CODE
+               STOP RUN
+             END-IF
+             MOVE EREGIONS TO TR-ITEM(REG-NUMERO)
+             READ REGIONS
+           END-PERFORM
+           CLOSE REGIONS
+           PERFORM TEST-STAT-REG
+
+      * OUVERTURE DES FICHIERS ET TEST D'INTEGRITE
+           OPEN INPUT REGIONS
+           PERFORM TEST-STAT-REG
+           OPEN INPUT MVT
+           PERFORM TEST-STAT-MVT
+           OPEN OUTPUT RECAP
+           PERFORM TEST-STAT-REC
+
+      * PREMIERE LECTURE DES FICHIERS D'ENTREE
+           READ REGIONS
+           PERFORM TEST-STAT-REG
+           READ MVT
+           PERFORM TEST-STAT-MVT
+
+      * VERIFICATION SUR LE PREMIER ENREGISTREMENT DE REGIONS ET MVT
+           IF WS-REG = '10' OR WS-MVT = '10'
+             DISPLAY 'LE FICHIER REGIONS OU MVT EST VIDE!'
+             DISPLAY 'STATUT REGIONS: ' WS-REG
+             DISPLAY 'STATUT MVT: ' WS-MVT
+             PERFORM FLUSH-ALL
+           END-IF
+           IF REG-IMM NOT = 100 OR MVT-IMM NOT = 100
+             DISPLAY 'IMMATRICULATION NE DEBUTE PAS A 100'
+             DISPLAY 'REGIONS - IMM (1): ' REG-IMM
+             DISPLAY 'MVT - IMM (1): ' MVT-IMM
+             PERFORM FLUSH-ALL
+           ELSE
+             ADD 1 TO WS-ID-MVT
+             ADD 1 TO WS-ID-REG
+           END-IF
+
+      * INITIALISATION SELON LE PREMIER ITEM DE MVT
+           IF TR-IMM(MVT-REGION) NOT = LOW-VALUE
+             MOVE MVT-REGION TO WS-CODE-REGION
+             MOVE MVT-AGENCE TO WS-CODE-AGENCE
+             ADD MVT-NB-DOSS TO WS-NB-DOSSIERS-AGC
+             ADD MVT-NB-DOSS TO WS-NB-DOSSIERS-REG
+           ELSE
+      **ECRITURE
+             DISPLAY '999'
+             ADD 1 TO WS-IMM-REC
+             MOVE 0 TO WS-NB-DOSSIERS-REG
+             MOVE MVT-REGION TO WS-CODE-REGION
+           END-IF
+
+           PERFORM UNTIL WS-MVT = '10'
+             IF TR-NUMERO(MVT-REGION) NOT = LOW-VALUE
+               PERFORM UNTIL WS-CODE-REGION NOT = MVT-REGION
+      **FLUSH
+                 MOVE TR-NOM(MVT-REGION) TO WS-NOM-REGION
+                 PERFORM UNTIL WS-CODE-AGENCE NOT = MVT-AGENCE
+      **FLUSH
+                   ADD 1 TO WS-ID-MVT
+                   ADD MVT-NB-DOSS TO WS-NB-DOSSIERS-AGC
+                   ADD MVT-NB-DOSS TO WS-NB-DOSSIERS-REG
+                 END-PERFORM
+      **ECRIRE 400
+                 DISPLAY '400'
+                 ADD 1 TO WS-ID-REG
+                 ADD 1 TO WS-IMM-REC
+                 MOVE 0 TO WS-NB-DOSSIERS-AGC
+                 MOVE MVT-AGENCE TO WS-CODE-AGENCE
+               END-PERFORM
+      **ECRIRE 500
+             DISPLAY '500'
+             ELSE
+      **ECRIRE 999
+             DISPLAY '999'
+             END-IF
+               ADD 1 TO WS-IMM-REC
+               MOVE 0 TO WS-NB-DOSSIERS-REG
+               MOVE MVT-REGION TO WS-CODE-REGION
+           END-PERFORM
+
+           CLOSE REGIONS
+           PERFORM TEST-STAT-REG
+           CLOSE MVT
+           PERFORM TEST-STAT-MVT
+           CLOSE RECAP
+           PERFORM TEST-STAT-REC
+
+           STOP RUN.
+
+       FLUSH-ALL.
+           MOVE 16 TO RETURN-CODE
+           CLOSE REGIONS
+           PERFORM TEST-STAT-REG
+           CLOSE MVT
+           PERFORM TEST-STAT-MVT
+           CLOSE RECAP
+           PERFORM TEST-STAT-REC
+           STOP RUN
+           .
+
+       TEST-STAT-REG.
+           IF WS-REG NOT = '00'
+             DISPLAY 'ERREUR FICHIER REGIONS: ' WS-REG
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-MVT.
+           IF WS-MVT NOT = '00'
+             DISPLAY 'ERREUR FICHIER MVT: ' WS-MVT
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-REC.
+           IF WS-REC NOT = '00'
+             DISPLAY 'ERREUR FICHIER RECAP: ' WS-REC
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+

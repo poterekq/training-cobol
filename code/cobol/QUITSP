@@ -1,0 +1,154 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. QUITSP.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 22 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER.
+           IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ASSU ASSIGN TO ASSURES
+             FILE STATUS FS-ASSU.
+           SELECT QTTC ASSIGN TO QUITTCE
+             FILE STATUS FS-QTTC.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD ASSU RECORDING F.
+       01 EASSU.
+         02 MATRICULE PIC 9(6).
+         02 NOMPRENOM PIC X(20).
+         02 ADRESSE   PIC X(18).
+         02 CP        PIC 9(5).
+         02 VILLE     PIC X(12).
+         02 VEHICULE  PIC X.
+         02 PRIME     PIC 9(4)V99.
+         02 BONMAL    PIC X.
+         02 TAUX      PIC 99.
+         02 FILLER    PIC X(9).
+
+       FD QTTC RECORDING F.
+       01 EQTTC PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      * STATUT DES FICHIERS
+       01 FILE-STATUS.
+         02 FS-ASSU PIC XX.
+         02 FS-QTTC PIC XX.
+
+       LINKAGE SECTION.
+       01 PARM.
+         02 PARM-CONTENT.
+           03 CODE-FONCTION PIC 999.
+           03 CODE-RETOUR   PIC 99.
+           03 NOM-FICHIER   PIC X(8).
+             88 NOM-OK-ASSU VALUE 'ASSU' 'ASSURES'.
+             88 NOM-OK-QTTC VALUE 'QTTC' 'QUITTCE'.
+           03 ENRGSTRMNT    PIC X(80).
+           03 FILLER        PIC X(28).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING PARM.
+           EVALUATE TRUE
+             WHEN NOM-OK-ASSU
+               PERFORM ASSU-FONCTION
+               PERFORM ASSU-INTEGRITE
+             WHEN NOM-OK-QTTC
+               PERFORM QTTC-FONCTION
+               PERFORM QTTC-INTEGRITE
+             WHEN OTHER
+      *        CODE RETOUR POUR UN FICHIER INCONNU
+               MOVE 01 TO CODE-RETOUR
+           END-EVALUATE
+           GOBACK.
+
+      * -------------------------------------------------------------- *
+
+      *EVALUATION DU CODE FONCTION
+       ASSU-FONCTION.
+           MOVE 00 TO CODE-RETOUR
+           EVALUATE CODE-FONCTION
+             WHEN 100
+               OPEN INPUT ASSU
+             WHEN 101
+               OPEN I-O ASSU
+             WHEN 102
+               OPEN OUTPUT ASSU
+             WHEN 200
+               READ ASSU INTO ENRGSTRMNT
+             WHEN 300
+               WRITE EASSU FROM ENRGSTRMNT
+             WHEN 400
+               REWRITE EASSU FROM ENRGSTRMNT
+             WHEN 500
+               CLOSE ASSU
+             WHEN OTHER
+      *        CODE RETOUR POUR UNE FONCTION INCONNUE
+               MOVE 02 TO CODE-RETOUR
+           END-EVALUATE
+           .
+
+       QTTC-FONCTION.
+           MOVE 00 TO CODE-RETOUR
+           EVALUATE CODE-FONCTION
+             WHEN 100
+               OPEN INPUT QTTC
+             WHEN 101
+               OPEN I-O QTTC
+             WHEN 102
+               OPEN OUTPUT QTTC
+             WHEN 200
+               READ QTTC INTO ENRGSTRMNT
+             WHEN 300
+               WRITE EQTTC FROM ENRGSTRMNT
+             WHEN 400
+               REWRITE EQTTC FROM ENRGSTRMNT
+             WHEN 500
+               CLOSE QTTC
+             WHEN OTHER
+      *        CODE RETOUR POUR UNE FONCTION INCONNUE
+               MOVE 02 TO CODE-RETOUR
+           END-EVALUATE
+           .
+
+       ASSU-INTEGRITE.
+           EVALUATE FS-ASSU
+             WHEN '00'
+               MOVE 00 TO CODE-RETOUR
+             WHEN '10'
+               MOVE 10 TO CODE-RETOUR
+             WHEN OTHER
+               MOVE 99 TO CODE-RETOUR
+           END-EVALUATE
+           .
+
+       QTTC-INTEGRITE.
+           EVALUATE FS-QTTC
+             WHEN '00'
+               MOVE 00 TO CODE-RETOUR
+             WHEN '10'
+               MOVE 10 TO CODE-RETOUR
+             WHEN OTHER
+               MOVE 99 TO CODE-RETOUR
+           END-EVALUATE
+           .

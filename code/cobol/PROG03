@@ -1,0 +1,33 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG03.
+      * -------------------------
+      * CONTINUE ET NEXT SENTENCE
+      * -------------------------
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77  Z1  PIC X  VALUE '2'.
+       77  Z2  PIC X  VALUE '4'.
+       77  CPT PIC 99 VALUE 0.
+       PROCEDURE DIVISION.
+           DISPLAY 'DEBUT PERFORM'
+           PERFORM UNTIL CPT > 6
+             IF CPT = 0
+                 DISPLAY 'CPT=' CPT
+             ELSE
+               IF CPT = 1
+                 CONTINUE
+               ELSE
+                 IF CPT = 2
+                   NEXT SENTENCE
+                 END-IF
+               END-IF
+             END-IF
+             ADD 1 TO CPT
+             DISPLAY 'FIN PERFORM CPT=' CPT
+           END-PERFORM
+           DISPLAY 'FIN PERFORM'
+           STOP RUN
+           .
+           DISPLAY 'APRES STOP RUN'
+           STOP RUN
+           .

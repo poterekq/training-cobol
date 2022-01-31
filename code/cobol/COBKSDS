@@ -1,0 +1,201 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID. COBKSDS.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 14 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+      *SOURCE-COMPUTER. IBM-370.
+       SOURCE-COMPUTER. IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FIC1 ASSIGN TO FIC1
+             ORGANIZATION INDEXED
+      *      ACCESS MODE IS RANDOM
+             ACCESS MODE IS DYNAMIC
+      *      ACCESS MODE IS SEQUENTIAL
+             RECORD KEY IS ASS-NUMERO
+             FILE STATUS WS-F-FIC.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD FIC1.
+       01 EFIC1.
+         COPY COPYASS.
+         05 FILLER PIC X(9).
+
+       WORKING-STORAGE SECTION.
+      *STATUT DES FICHIERS
+       01 WS-F-FIC PIC XX.
+
+      *ZONES DE CONTROLE POUR LA LECTURE DU FICHIER
+       01 CTRL-FIC1.
+         02 CTRL-KEY-OK PIC X VALUE 'Y'.
+         02 CTRL-KEY-START PIC X(6).
+         02 CTRL-TMP    PIC X(80).
+
+       LINKAGE SECTION.
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+      *    OUVERTURE DU KSDS
+           OPEN I-O FIC1
+           PERFORM TEST-STAT-FIC
+
+           DISPLAY 'TRAITEMENT SUR KSDS'
+           DISPLAY '-------------------'
+
+      *    LECTURE D'UN ENREGISTREMENT EN MODE RANDOM
+           DISPLAY ' '
+           DISPLAY '- LECTURE DU FICHIER'
+           MOVE '000100' TO ASS-NUMERO
+           PERFORM AFFICHER-REC
+           MOVE '004564' TO ASS-NUMERO
+           PERFORM AFFICHER-REC
+
+      *    MODIFIER L'ENREGISTREMENT 100165
+           DISPLAY ' '
+           DISPLAY '- MODIFIER UN ENREGISTREMENT'
+           MOVE '100165' TO ASS-NUMERO
+           DISPLAY 'AVANT: '
+           PERFORM AFFICHER-REC
+           PERFORM MODIFIER-REC
+           DISPLAY 'APRES: '
+           PERFORM AFFICHER-REC
+
+      *    SUPPRIMER L'ENREGISTREMENT 100165
+           DISPLAY ' '
+           DISPLAY '- SUPPRIMER UN ENREGISTREMENT'
+           MOVE '000645' TO ASS-NUMERO
+           PERFORM SUPPRIMER-REC
+           DISPLAY 'ACCES APRES SUPPRESSION: '
+           PERFORM AFFICHER-REC
+
+      *    LIRE LE FICHIER A PARTIR DE LA CLE 111163
+           DISPLAY ' '
+           DISPLAY '- COMMENCER LA LECTURE DEPUIS 111163'
+           MOVE '111163' TO ASS-NUMERO
+           START FIC1 KEY IS >= ASS-NUMERO
+             INVALID KEY
+               DISPLAY 'CLE INVALIDE! OPERATION AVORTEE!'
+           END-START
+           PERFORM UNTIL WS-F-FIC = '10'
+             PERFORM TEST-STAT-FIC
+             READ FIC1 NEXT
+             DISPLAY EFIC1
+           END-PERFORM
+
+      *    CREER UN ENREGISTREMENT A PARTIR DE 111163
+           DISPLAY ' '
+           DISPLAY '- COPIER 111163 VERS 111165'
+           MOVE '111163' TO ASS-NUMERO
+           PERFORM LIRE-FIC1
+
+           EVALUATE CTRL-KEY-OK
+             WHEN 'N'
+               DISPLAY 'L''ORIGINE N''EXISTE PAS!'
+             WHEN 'Y'
+               MOVE '111165' TO ASS-NUMERO
+               MOVE EFIC1 TO CTRL-TMP
+               WRITE EFIC1
+           END-EVALUATE
+
+           PERFORM AFFICHER-REC
+
+      *    CREER UN NOUVEL ENREGISTREMENT
+           DISPLAY ' '
+           DISPLAY '- CREER UN NOUVEL ENREGISTREMENT'
+           MOVE '000002' TO ASS-NUMERO
+           PERFORM LIRE-FIC1
+
+           IF CTRL-KEY-OK = 'Y'
+             DISPLAY 'LA CLE EXISTE DEJA!'
+           ELSE
+             MOVE 'EMMANUEL MACRON' TO ASS-NOM
+             MOVE '3 RUE ARGONNE' TO ASS-RUE
+             MOVE '67000' TO ASS-CP
+             MOVE 'STRASBOURG' TO ASS-VILLE
+             MOVE 'M' TO ASS-VEHICULE
+             MOVE 160000 TO ASS-PRIME
+             MOVE 'B' TO ASS-BONUS
+             MOVE 14 TO ASS-TAUX
+             WRITE EFIC1
+           END-IF
+
+           PERFORM AFFICHER-REC
+
+      *    FERMETURE DU KSDS
+           CLOSE FIC1
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+       LIRE-FIC1.
+           MOVE 'Y' TO CTRL-KEY-OK
+
+           READ FIC1 KEY IS ASS-NUMERO
+             INVALID KEY MOVE 'N' TO CTRL-KEY-OK
+           END-READ
+           .
+
+       AFFICHER-REC.
+           PERFORM LIRE-FIC1
+
+           EVALUATE CTRL-KEY-OK
+             WHEN 'Y'
+               DISPLAY EFIC1
+             WHEN 'N'
+               DISPLAY 'CLE INVALIDE! LECTURE AVORTEE!'
+           END-EVALUATE
+           .
+
+       MODIFIER-REC.
+           PERFORM LIRE-FIC1
+
+           EVALUATE CTRL-KEY-OK
+             WHEN 'Y'
+               MOVE 'ALBERT MEGUIRA' TO ASS-NOM
+               REWRITE EFIC1
+             WHEN 'N'
+               DISPLAY 'CLE INVALIDE! MODIFICATION AVORTEE!'
+           END-EVALUATE
+           .
+
+       SUPPRIMER-REC.
+           PERFORM LIRE-FIC1
+
+           EVALUATE CTRL-KEY-OK
+             WHEN 'Y'
+               DELETE FIC1
+             WHEN 'N'
+               DISPLAY 'CLE INVALIDE! SUPPRESSION AVORTEE!'
+           END-EVALUATE
+           .
+
+       TEST-STAT-FIC.
+           IF WS-F-FIC NOT = '00'
+             MOVE 16 TO RETURN-CODE
+             DISPLAY 'ERREUR FICHIER FIC1: ' WS-F-FIC
+             GOBACK
+           END-IF
+           .

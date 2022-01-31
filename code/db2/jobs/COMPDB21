@@ -1,0 +1,30 @@
+//APIXDB21 JOB NOTIFY=&SYSUID,CLASS=A,MSGCLASS=H
+//*
+//*------------------------------------------------------*
+//* ===> CHANGER XX PAR N¢ DU GROUPE   (XX 01 @ 15)      *
+//*      CHANGER     MAOPTS3DEPAR LE NOM DU PROGRAMME    *
+//*------------------------------------------------------*
+//*
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//*   CETTE PROCEDURE CONTIENT 5 STEPS :                             *
+//*       ======> SI RE-EXECUTION FAIRE RESTART AU "STEPRUN"         *
+//*                                                                  *
+//*         1/  PRECOMPILE  DB2                                      *
+//*         2/  COMPILE COBOL II                                     *
+//*         3/  LINKEDIT  (DANS FORM.CICS.LOAD)                      *
+//*         4/  BIND PLAN PARTIR DE APIXX.SOURCE.DBRMLIB             *
+//*         5/  EXECUTE DU PROGRAMME                                 *
+//*  LES   PROCEDURES  SE TROUVENT DANS SDJ.FORM.PROCLIB             *
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//PROCLIB  JCLLIB ORDER=SDJ.FORM.PROCLIB
+//*
+//         SET SYSUID=API1,
+//             NOMPGM=MAOPTS3D
+//*
+//APPROC   EXEC COMPDB2
+//STEPCOB.SYSLIB   DD DSN=API0.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSLIB   DD DSN=API1.SOURCE.DCLGEN,DISP=SHR
+//                 DD DSN=API1.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSIN    DD DSN=API1.SOURCE.DB2(&NOMPGM),DISP=SHR
+//STEPDB2.DBRMLIB  DD DSN=API1.SOURCE.DBRMLIB(&NOMPGM),DISP=SHR
+//STEPLNK.SYSLMOD  DD DSN=API1.SOURCE.PGMLIB(&NOMPGM),DISP=SHR

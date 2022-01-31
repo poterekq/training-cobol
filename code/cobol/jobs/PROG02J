@@ -1,0 +1,7 @@
+//API1P2   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00001001
+//*                                                                     00002001
+//* EXECUTION DU PROGRAMME DE PERFORM                                   00003001
+//*                                                                     00004001
+//WELCOME  EXEC PGM=PROG02                                              00005001
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00006001
+//SYSOUT   DD SYSOUT=H                                                  00007001

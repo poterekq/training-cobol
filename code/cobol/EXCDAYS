@@ -1,0 +1,41 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    EXCDAYS.
+      *******************************
+      * PROGRAMME QUI CALL CEEDAYS *
+      *******************************
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 CR              PIC X(12).
+       01 DATE-E.
+          02              PIC S9(4) COMP VALUE +10.
+          02 DAT          PIC X(10).
+       01 FORMAT-E.
+          02              PIC S9(4) COMP VALUE +10.
+          02              PIC X(10) VALUE 'DD/MM/YYYY'.
+       01 NBJ-SORTIE      PIC 9(8) COMP-5.
+
+       PROCEDURE DIVISION.
+           MOVE "01/01/1601" TO DAT
+           CALL "CEEDAYS" USING DATE-E FORMAT-E NBJ-SORTIE CR
+           IF CR(1:8) = LOW-VALUE
+             DISPLAY NBJ-SORTIE
+           ELSE
+             DISPLAY "ERREUR : " CR
+           END-IF
+           MOVE "02/01/1601" TO DAT
+           CALL "CEEDAYS" USING DATE-E FORMAT-E NBJ-SORTIE CR
+           IF CR(1:8) = LOW-VALUE
+             DISPLAY NBJ-SORTIE
+           ELSE
+             DISPLAY "ERREUR : " CR
+           END-IF
+           MOVE "31/01/1601" TO DAT
+           CALL "CEEDAYS" USING DATE-E FORMAT-E NBJ-SORTIE CR
+           IF CR(1:8) = LOW-VALUE
+             DISPLAY NBJ-SORTIE
+           ELSE
+             DISPLAY "ERREUR : " CR
+           END-IF
+           GOBACK
+           .

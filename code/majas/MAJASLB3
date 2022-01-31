@@ -1,0 +1,61 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * RECUPERE LES LABELS DES MESSAGES D'ERREUR A PARTIR D'UN CODE,
+      * DEPUIS UNE TABLE DB2
+
+       PROGRAM-ID. MAJASLB3.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 JANVIER 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+           EXEC SQL
+             INCLUDE MESSDB2
+           END-EXEC
+
+       01 T-NUM    PIC X(3).
+       01 T-MES    PIC X(60).
+
+       LINKAGE SECTION.
+
+       01 LS-PROC  PIC 9.
+       01 LS-CODE  PIC 999.
+       01 LS-LABEL PIC X(60).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING LS-PROC LS-CODE LS-LABEL.
+           MOVE LS-CODE TO T-NUM
+           MOVE SPACES TO T-MES
+           PERFORM LIRE-ENREGISTREMENT
+           MOVE T-MES TO LS-LABEL
+           .
+
+       LIRE-ENREGISTREMENT.
+           EXEC SQL
+             SELECT MES INTO :T-MES
+             FROM API1.MESSDB2
+             WHERE NUM = :T-NUM
+           END-EXEC
+           .

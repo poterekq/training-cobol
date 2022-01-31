@@ -1,0 +1,51 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. BNCHESDS.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT SASS ASSIGN TO SASS
+              FILE STATUS IS FS-SASS.
+           SELECT VASS ASSIGN TO AS-VASS
+              FILE STATUS IS FS-VASS.
+       DATA DIVISION.
+       FILE SECTION.
+       FD SASS RECORDING F.
+       01 ESASS PIC X(80).
+       FD VASS.
+       01 EVASS PIC X(80).
+       WORKING-STORAGE SECTION.
+       01 FS-SASS PIC XX.
+       01 FS-VASS PIC XX.
+       PROCEDURE DIVISION.
+      *OUVRIR LES FICHIERS
+           OPEN INPUT SASS
+           PERFORM TEST-FS-SASS
+           OPEN OUTPUT VASS
+           PERFORM TEST-FS-VASS
+           READ SASS
+           PERFORM UNTIL FS-SASS = '10'
+              PERFORM TEST-FS-SASS
+              WRITE EVASS FROM ESASS
+              PERFORM TEST-FS-VASS
+              READ SASS
+           END-PERFORM
+           CLOSE VASS
+           PERFORM TEST-FS-VASS
+           CLOSE SASS
+           PERFORM TEST-FS-SASS
+           GOBACK
+           .
+       TEST-FS-SASS.
+           IF FS-SASS NOT = '00'
+              DISPLAY 'ERREUR FICHIER SASS: ' FS-SASS
+              MOVE 16 TO RETURN-CODE
+              GOBACK
+           END-IF
+           .
+       TEST-FS-VASS.
+           IF FS-VASS NOT = '00'
+              DISPLAY 'ERREUR FICHIER VASS: ' FS-VASS
+              MOVE 16 TO RETURN-CODE
+              GOBACK
+           END-IF
+           .

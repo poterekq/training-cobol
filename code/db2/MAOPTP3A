@@ -1,0 +1,295 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTP3A.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 19 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT ASS ASSIGN TO ASS
+             FILE STATUS WS-FS.
+
+           SELECT MVT ASSIGN TO MVT
+             FILE STATUS WS-FS.
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD ASS RECORDING F.
+       01 EASS.
+          COPY CASSURE3.
+
+       FD MVT RECORDING F.
+       01 EMVT.
+          COPY CFMVTSE.
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STATUT DES FICHIERS -------------------------------------------
+
+       01 WS-FS                PIC 99 VALUE ZEROS.
+
+
+      *STRUCTURES POUR SQLCA -----------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *STRUCTURE DES TABLES DB2 --------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE TASSURE
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE TMVTS
+           END-EXEC
+
+
+       LINKAGE SECTION.
+      *----------------
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *///////////////////
+       PROCEDURE DIVISION.
+      *///////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-TRAITER-ASS
+           PERFORM 200-TRAITER-MVT
+           .
+
+
+      *BLOCS 100S - TRAITER TASSURE
+      *----------------------------
+
+       100-TRAITER-ASS.
+           PERFORM 110-OUVRIR-ASS
+           PERFORM 120-ITERER-ASS
+           PERFORM 130-FERMER-ASS
+           .
+
+
+       110-OUVRIR-ASS.
+           OPEN INPUT ASS
+           PERFORM TEST-FS
+           .
+
+
+       120-ITERER-ASS.
+           READ ASS
+           PERFORM UNTIL WS-FS = '10'
+              PERFORM TEST-FS
+              PERFORM 121-PREPARER-LIGNE
+              PERFORM 122-ECRIRE-LIGNE
+              READ ASS
+           END-PERFORM
+           .
+
+
+       121-PREPARER-LIGNE.
+           MOVE MAT-X3     TO MAT    OF DCLTASSURE
+           MOVE NOM-PRE-A3 TO NOMPRE OF DCLTASSURE
+           MOVE RUE-A3     TO RUE    OF DCLTASSURE
+           MOVE CP-A3      TO CP     OF DCLTASSURE
+           MOVE VILLE-A3   TO VILLE  OF DCLTASSURE
+           MOVE TYPE-V-A3  TO TYPEV  OF DCLTASSURE
+           MOVE PRIME-A3   TO PRIME  OF DCLTASSURE
+           MOVE BM-A3      TO BM     OF DCLTASSURE
+           MOVE TAUX-A3    TO TAUX   OF DCLTASSURE
+           .
+
+
+       122-ECRIRE-LIGNE.
+           EXEC SQL
+              INSERT INTO API1.TASSURE
+                 VALUES (
+                            :DCLTASSURE.MAT        ,
+                            :DCLTASSURE.NOMPRE     ,
+                            :DCLTASSURE.RUE        ,
+                            :DCLTASSURE.CP         ,
+                            :DCLTASSURE.VILLE      ,
+                            :DCLTASSURE.TYPEV      ,
+                            :DCLTASSURE.PRIME      ,
+                            :DCLTASSURE.BM         ,
+                            :DCLTASSURE.TAUX
+                        )
+           END-EXEC
+           .
+
+
+       130-FERMER-ASS.
+           CLOSE ASS.
+           PERFORM TEST-FS
+           .
+
+
+      *BLOCS 100S - TRAITER TMVTS
+      *--------------------------
+
+       200-TRAITER-MVT.
+           PERFORM 210-OUVRIR-MVT
+           PERFORM 220-ITERER-MVT
+           PERFORM 230-FERMER-MVT
+           .
+
+
+       210-OUVRIR-MVT.
+           OPEN INPUT MVT
+           PERFORM TEST-FS
+           .
+
+
+       220-ITERER-MVT.
+           READ MVT
+           PERFORM UNTIL WS-FS = '10'
+              PERFORM TEST-FS
+              PERFORM 221-PREPARER-LIGNE
+              PERFORM 222-ECRIRE-LIGNE
+              READ MVT
+           END-PERFORM
+           .
+
+
+       221-PREPARER-LIGNE.
+           MOVE MAT-MVT       TO MAT    OF DCLTMVTS
+           MOVE NOM-PRE-MVT   TO NOMPRE OF DCLTMVTS
+           MOVE RUE-MVT       TO RUE    OF DCLTMVTS
+           MOVE CP-MVT        TO CP     OF DCLTMVTS
+           MOVE VILLE-MVT     TO VILLE  OF DCLTMVTS
+           MOVE TYPE-VEHICULE TO TYPEV  OF DCLTMVTS
+           MOVE PRIME-MVT     TO PRIME  OF DCLTMVTS
+           MOVE BM-MVT        TO BM     OF DCLTMVTS
+           MOVE TAUX-MVT      TO TAUX   OF DCLTMVTS
+           MOVE TYPE-MVT      TO TYPEM  OF DCLTMVTS
+           .
+
+
+       222-ECRIRE-LIGNE.
+           EXEC SQL
+              INSERT INTO API1.TMVTS
+                 VALUES (
+                            :DCLTMVTS.MAT        ,
+                            :DCLTMVTS.NOMPRE     ,
+                            :DCLTMVTS.RUE        ,
+                            :DCLTMVTS.CP         ,
+                            :DCLTMVTS.VILLE      ,
+                            :DCLTMVTS.TYPEV      ,
+                            :DCLTMVTS.PRIME      ,
+                            :DCLTMVTS.BM         ,
+                            :DCLTMVTS.TAUX       ,
+                            :DCLTMVTS.TYPEM
+                        )
+           END-EXEC
+           .
+
+
+       230-FERMER-MVT.
+           CLOSE MVT.
+           PERFORM TEST-FS
+           .
+
+
+      *BLOCS FS - STATUT DES FICHIERS
+      *------------------------------
+
+       TEST-FS.
+      *TESTER L'INTEGRITE DU FICHIER ET DE SES ENREGISTREMENTS
+           IF WS-FS NOT = '00'
+              DISPLAY 'ERREUR FICHIER: ' WS-FS
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           PERFORM FIN-PROGRAMME
+           .

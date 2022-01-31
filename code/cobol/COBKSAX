@@ -1,0 +1,89 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID. COBKSAX.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 15 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+      *SOURCE-COMPUTER. IBM-370.
+       SOURCE-COMPUTER. IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FIC1 ASSIGN TO FIC1
+             ORGANIZATION INDEXED
+      *      ACCESS MODE IS RANDOM
+             ACCESS MODE IS DYNAMIC
+      *      ACCESS MODE IS SEQUENTIAL
+             RECORD KEY IS ASS-NUMERO
+             ALTERNATE KEY ASS-CP-PREFIXE WITH DUPLICATES
+             FILE STATUS WS-F-FIC.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD FIC1.
+       01 EFIC1.
+         COPY COPYASS.
+         05 FILLER PIC X(9).
+
+       WORKING-STORAGE SECTION.
+      *STATUT DES FICHIERS
+       01 WS-F-FIC PIC XX.
+
+       LINKAGE SECTION.
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+      *    OUVERTURE DU KSDS
+           OPEN I-O FIC1
+           PERFORM TEST-STAT-FIC
+
+           DISPLAY 'TRAITEMENT SUR KSDS AVEC AIX'
+           DISPLAY '----------------------------'
+
+      *    LIRE LE FICHIER A PARTIR DE LE DPT 75
+           DISPLAY ' '
+           DISPLAY '- COMMENCER LA LECTURE DEPUIS DPT 75'
+           MOVE '75' TO ASS-CP-PREFIXE
+           START FIC1 KEY >= ASS-CP-PREFIXE
+             INVALID KEY
+               DISPLAY 'CLE INVALIDE! OPERATION AVORTEE!'
+           END-START
+           PERFORM TEST AFTER UNTIL WS-F-FIC NOT = '02'
+             PERFORM TEST-STAT-FIC
+             READ FIC1 NEXT
+             DISPLAY EFIC1
+           END-PERFORM
+
+      *    FERMETURE DU KSDS
+           CLOSE FIC1
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+       TEST-STAT-FIC.
+           IF WS-F-FIC NOT = '00' AND WS-F-FIC NOT = '02'
+             MOVE 16 TO RETURN-CODE
+             DISPLAY 'ERREUR FICHIER FIC1: ' WS-F-FIC
+             GOBACK
+           END-IF
+           .

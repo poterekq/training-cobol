@@ -1,0 +1,25 @@
+//API01C  JOB ((999,SDJ)),'',USER=API1,MSGLEVEL=(1,1),
+//         NOTIFY=&SYSUID,CLASS=A,MSGCLASS=H
+//         JCLLIB  ORDER=SDJ.FORM.PROCLIB
+//         EXEC COMPCICS,NOMPGM=INF2CI1
+//*
+//********************************************************************
+//*       COMPILE  - COMPILE COBOL/CICS ET LINKEDIT DE PROGRAMME     *
+//*                  DB2 VERSION 7                                   *
+//********************************************************************
+//*------------------------------------------------------*
+//* ===> MODIFIER 01 PAR N¢ DU GROUPE  (01 01 @ 15)      *
+//*      CHANGER 'INFOCI01' PAR VOTRE NOM DE PROGRAMME   *
+//*------------------------------------------------------*
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//*   CETTE PROCEDURE CONTIENT 6 STEPS :                             *
+//*         1/  PRECOMPILE  CICS/TS                                  *
+//*         2/  COMPILE COBOL II                                     *
+//*         3/  LINKEDIT  (DANS FORM.CICS.LOAD)                      *
+//*  LES   PROCEDURES  SE TROUVENT DANS SDJ.FORM.PROCLIB             *
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//STEPCIC.SYSIN    DD DSN=API1.SOURCE.CICS(&NOMPGM),DISP=SHR
+//STEPCOB.SYSLIB   DD
+//                 DD
+//                 DD DSN=SDJ.CICS.COPY,DISP=SHR
+//

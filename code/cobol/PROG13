@@ -1,0 +1,48 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG13.
+      * ----------------------------------------
+      * LECTURE D'UN FICHIER RRDS EN MODE RANDOM
+      * ----------------------------------------
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FIC1 ASSIGN DDFIC1
+             ORGANIZATION RELATIVE
+             ACCESS RANDOM
+             RELATIVE KEY WS-NUMERO
+             FILE STATUS WS-FIC1.
+       DATA DIVISION.
+       FILE SECTION.
+       FD FIC1.
+       01 EFIC1.
+         05 RR-NUMERO   PIC 9(5).
+         05 RR-INTITULE PIC X(20).
+         05             PIC X(55).
+       WORKING-STORAGE SECTION.
+       77 WS-FIC1 PIC XX.
+       77 WS-PRIME PIC ZBZZ9V,99.
+       77 WS-NUMERO PIC 9(4) COMP.
+       PROCEDURE DIVISION.
+           OPEN INPUT FIC1
+           PERFORM TEST-STAT-FICH1
+           ACCEPT RR-NUMERO
+           PERFORM UNTIL RR-NUMERO = '00000'
+             MOVE RR-NUMERO TO WS-NUMERO
+             READ FIC1
+             PERFORM TEST-STAT-FICH1
+             DISPLAY 'NUMERO     : ' RR-NUMERO
+             DISPLAY 'INTITULE   : ' RR-INTITULE
+             DISPLAY '---------------------------'
+             ACCEPT RR-NUMERO
+           END-PERFORM
+           CLOSE FIC1
+           PERFORM TEST-STAT-FICH1
+           STOP RUN
+           .
+       TEST-STAT-FICH1.
+           IF WS-FIC1 NOT = '00'
+             DISPLAY 'ERREUR FICHIER ASSURE ' WS-FIC1
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

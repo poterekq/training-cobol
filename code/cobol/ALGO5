@@ -1,0 +1,151 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ALGO5.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FRANCE ASSIGN TO 'FRANCE'
+             FILE STATUS WS-FR.
+           SELECT STATS ASSIGN TO 'STATS'
+             FILE STATUS WS-ST.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD FRANCE RECORDING F.
+       01 EFRANCE.
+         05 DPT         PIC XX.
+         05 CAN         PIC X.
+         05 COMMUNE     PIC XX.
+         05 NOM-COMMUNE PIC X(70).
+         05 NB-HABITANT PIC S9(9) COMP-3.
+       FD STATS RECORDING F.
+       01 ESTATS PIC X(80).
+
+       WORKING-STORAGE SECTION.
+       77 WS-FR PIC XX.
+       77 WS-ST PIC XX.
+
+       77 WS-CAN PIC X.
+       77 WS-DPT PIC XX.
+       77 WS-POP-FRANCE PIC 9(9).
+       77 WS-POP-DPT PIC 9(9).
+       77 WS-POP-CAN PIC 9(9).
+
+       01 ST-HEADER-LINE.
+         05 FILLER PIC X(20).
+         05 VALUE 'STATISTIQUES DE LA POPULATION EN FRANCE' PIC X(40).
+         05 FILLER PIC X(20).
+       01 ST-HEADER-DPT.
+         05 VALUE 'DEPARTEMENT ' PIC X(12).
+         05 ID-DPT PIC XX.
+         05 FILLER PIC X(66).
+       01 ST-HEADER-CAN.
+         05 VALUE '  CANTON ' PIC X(9).
+         05 ID-CAN PIC X.
+         05 FILLER PIC X(70).
+       01 ST-LIGNE-COMM.
+         05 VALUE '    COMMUNE ' PIC X(12).
+         05 ID-COMM PIC XX.
+         05 FILLER PIC X(12).
+         05 TOT-COMM PIC ZZZZZZZZ9.
+         05 FILLER PIC X(45).
+       01 ST-STATS-CAN.
+         05 VALUE '  TOTAL CANTON ' PIC X(15).
+         05 ID-S-CAN PIC X.
+         05 FILLER PIC X(10).
+         05 TOT-CAN PIC ZZZZZZZZ9.
+         05 FILLER PIC X(45).
+       01 ST-STATS-DPT.
+         05 VALUE 'TOTAL DEPARTEMENT ' PIC X(18).
+         05 ID-S-DPT PIC XX.
+         05 FILLER PIC X(6).
+         05 TOT-DPT PIC ZZZZZZZZ9.
+         05 FILLER PIC X(45).
+       01 ST-FOOTER-FILE.
+         05 VALUE 'TOTAL FRANCE ' PIC X(13).
+         05 FILLER PIC X(13).
+         05 TOT-FRANCE PIC ZZZZZZZZ9.
+         05 FILLER PIC X(45).
+
+       PROCEDURE DIVISION.
+           OPEN INPUT FRANCE
+           PERFORM TEST-STAT-FR
+           OPEN OUTPUT STATS
+           PERFORM TEST-STAT-ST
+
+           READ FRANCE
+           MOVE DPT TO WS-DPT
+           MOVE CAN TO WS-CAN
+
+           WRITE ESTATS FROM ST-HEADER-LINE
+           MOVE SPACES TO ST-HEADER-LINE
+           WRITE ESTATS FROM ST-HEADER-LINE
+
+           PERFORM UNTIL WS-FR = '10'
+             PERFORM ECRIRE-HEADER-DPT
+             PERFORM UNTIL DPT NOT = WS-DPT OR WS-FR = '10'
+               PERFORM ECRIRE-HEADER-CAN
+               PERFORM UNTIL CAN NOT = WS-CAN OR WS-FR = '10'
+                 PERFORM ECRIRE-LIGNE-COMMUNE
+                 PERFORM INCREMENTER-POPULATIONS
+                 READ FRANCE
+               END-PERFORM
+               PERFORM ECRIRE-STATS-CAN
+               MOVE CAN TO WS-CAN
+               MOVE 0 TO WS-POP-CAN
+             END-PERFORM
+             PERFORM ECRIRE-STATS-DPT
+             MOVE DPT TO WS-DPT
+             MOVE 0 TO WS-POP-DPT
+           END-PERFORM
+
+           MOVE WS-POP-FRANCE TO TOT-FRANCE
+           WRITE ESTATS FROM ST-FOOTER-FILE
+
+           CLOSE FRANCE
+           PERFORM TEST-STAT-FR
+           CLOSE STATS
+           PERFORM TEST-STAT-ST
+           STOP RUN.
+
+       ECRIRE-STATS-CAN.
+           MOVE WS-CAN TO ID-S-CAN
+           MOVE WS-POP-CAN TO TOT-CAN
+           WRITE ESTATS FROM ST-STATS-CAN.
+
+       ECRIRE-STATS-DPT.
+           MOVE WS-DPT TO ID-S-DPT
+           MOVE WS-POP-DPT TO TOT-DPT
+           WRITE ESTATS FROM ST-STATS-DPT.
+
+       ECRIRE-LIGNE-COMMUNE.
+           MOVE COMMUNE TO ID-COMM
+           MOVE NB-HABITANT TO TOT-COMM
+           WRITE ESTATS FROM ST-LIGNE-COMM.
+
+       ECRIRE-HEADER-CAN.
+           MOVE WS-CAN TO ID-CAN
+           WRITE ESTATS FROM ST-HEADER-CAN.
+
+       ECRIRE-HEADER-DPT.
+           MOVE WS-DPT TO ID-DPT
+           WRITE ESTATS FROM ST-HEADER-DPT.
+
+       INCREMENTER-POPULATIONS.
+           ADD NB-HABITANT TO WS-POP-FRANCE
+           ADD NB-HABITANT TO WS-POP-DPT
+           ADD NB-HABITANT TO WS-POP-CAN.
+
+       TEST-STAT-FR.
+           IF WS-FR NOT = '00'
+             DISPLAY 'ERREUR FICHIER FRANCE: ' WS-FR
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-ST.
+           IF WS-ST NOT = '00'
+             DISPLAY 'ERREUR FICHIER STATS: ' WS-ST
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.

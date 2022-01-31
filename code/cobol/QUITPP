@@ -1,0 +1,388 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. QUITPP.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 22 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER.
+           IBM-370.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+      * ZONES TEMPORAIRES
+       77 TMP-STRING PIC X(80).
+       77 TMP-CALCUL PIC 9(5)V99.
+
+      * COMPTEURS
+       01 CPT.
+         02 CPT-QTTC  PIC 99 VALUE 0.
+
+      * DATE
+       01 WS-DATE.
+         02 DATE-A PIC X(4).
+         02 DATE-M PIC XX.
+         02 DATE-J PIC XX.
+         02 HEURE  PIC XX.
+         02 MINUTE PIC XX.
+
+      * PAGE DE GARDE
+       01 PAGE-DE-GARDE.
+         02 FILLER    PIC X(20).
+         02 PDG-TEXTE PIC X(40).
+         02 FILLER    PIC X(20).
+
+      * MODELE DE QUITTANCE
+       77 QT-LIGNE-VIDE PIC X(80).
+
+       01 QT-LIGNE-SEP.
+         02 FILLER PIC X     VALUE '+'.
+         02 FILLER PIC X(78) VALUE ALL '-'.
+         02 FILLER PIC X     VALUE '+'.
+
+       01 QT-LIGNE-VIDE-COLS.
+         02 FILLER PIC XX VALUE '| '.
+         02 FILLER PIC X(76).
+         02 FILLER PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-SEP-HALF.
+         02 FILLER PIC X     VALUE '|'.
+         02 FILLER PIC X(20).
+         02 FILLER PIC X(38) VALUE ALL '-'.
+         02 FILLER PIC X(20).
+         02 FILLER PIC X     VALUE '|'.
+
+       01 QT-TITRE.
+         02 FILLER PIC X(27) VALUE '| QUITTANCE DE PRIME'.
+         02 QT-TI-NUM PIC XX VALUE '00'.
+         02 FILLER PIC X(50).
+         02 FILLER PIC X(1)  VALUE '|'.
+
+       01 QT-COORDS.
+         02 FILLER      PIC XX VALUE '| '.
+         02 QT-CO-LABEL PIC X(25).
+         02 QT-CO-VALUE PIC X(20).
+         02 FILLER      PIC X(31).
+         02 FILLER      PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-2COLS.
+         02 FILLER       PIC XX VALUE '| '.
+         02 QT-LI2-LABEL PIC X(25).
+         02 QT-LI2-VALUE PIC ZZZ9V,99.
+         02 FILLER       PIC X(44).
+         02 FILLER       PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-4COLS.
+         02 FILLER       PIC XX VALUE '| '.
+         02 QT-LI4-LABC1 PIC X(25).
+         02 QT-LI4-VALC1 PIC ZZZ9V,99.
+         02 FILLER       PIC X(5).
+         02 QT-LI4-LABC2 PIC X(5).
+         02 FILLER       PIC X(5).
+         02 QT-LI4-VALC2 PIC Z9.
+         02 FILLER       PIC X VALUE '%'.
+         02 FILLER       PIC X(26).
+         02 FILLER       PIC XX VALUE ' |'.
+
+      *SOUS-PROGRAMMES.
+       01 SP.
+         02 SP1 PIC X(6) VALUE 'QUITSP'.
+
+      *STRUCTURES DE CONTROLE POUR LE SOUS-PROGRAMME SP1
+       01 SP1-CTRL.
+         02 CODE-FONCTION PIC 999.
+         02 CODE-RETOUR   PIC 99.
+         02 NOM-FICHIER   PIC X(8).
+         02 ENRGSTRMNT    PIC X(80).
+         02 FILLER        PIC X(28).
+
+       01 NOMS-FICHIERS.
+         02 NOM-ASSU PIC X(4) VALUE 'ASSU'.
+         02 NOM-QTTC PIC X(4) VALUE 'QTTC'.
+
+       01 CONTENU-ASSU.
+         02 MATRICULE PIC 9(6).
+         02 NOMPRENOM PIC X(20).
+         02 ADRESSE   PIC X(18).
+         02 CP        PIC 9(5).
+         02 VILLE     PIC X(12).
+         02 VEHICULE  PIC X.
+         02 PRIME     PIC 9(4)V99.
+         02 BONMAL    PIC X.
+         02 TAUX      PIC 99.
+         02 FILLER    PIC X(9).
+
+       LINKAGE SECTION.
+       01 PARM.
+         02 PARM-LENGTH  PIC S9(4) COMP.
+         02 PARM-CONTENT PIC X(80).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING PARM.
+           PERFORM 00000-RACINE.
+           GOBACK.
+
+      * -------------------------------------------------------------- *
+
+      *BLOCS SP1 - OPERATIONS REALISEES PAR L'ACCESSEUR
+
+       SP1-APPEL-ASSU.
+           MOVE NOM-ASSU TO NOM-FICHIER
+           CALL SP1 USING SP1-CTRL
+           .
+
+       SP1-APPEL-QTTC.
+           MOVE NOM-QTTC TO NOM-FICHIER
+           CALL SP1 USING SP1-CTRL
+           .
+
+       SP1-LIRE-ASSU.
+           MOVE 200 TO CODE-FONCTION
+           PERFORM SP1-APPEL-ASSU
+           MOVE ENRGSTRMNT TO CONTENU-ASSU
+           .
+
+       SP1-ECRIRE-QTTC.
+           MOVE 300 TO CODE-FONCTION
+           PERFORM SP1-APPEL-QTTC
+           .
+
+      *SP1-ECRIRE-BPAGE-QTTC.
+      *    MOVE 301 TO CODE-FONCTION
+      *    PERFORM SP1-APPEL-QTTC
+      *    .
+
+      *SP1-ECRIRE-APAGE-QTTC.
+      *    MOVE 302 TO CODE-FONCTION
+      *    PERFORM SP1-APPEL-QTTC
+      *    .
+
+       SP1-TEST.
+           IF CODE-RETOUR NOT = '00'
+             DISPLAY 'ERREUR SP1: ' CODE-RETOUR
+             DISPLAY SP1-CTRL
+             GOBACK
+           END-IF
+           .
+
+      *BLOCS NO 00000S - CORPS DE LA PROCEDURE
+
+       00000-RACINE.
+           PERFORM 10000-DEBUT
+           PERFORM 20000-TRAITEMENT
+           PERFORM 30000-FIN
+           .
+
+      *BLOCS NO 10000S - INITIALISATION DU PROGRAMME
+
+       10000-DEBUT.
+           PERFORM 11000-INITIALISER-ASSU
+           PERFORM 12000-INITIALISER-QTTC
+           .
+
+       11000-INITIALISER-ASSU.
+           MOVE 100 TO CODE-FONCTION
+           PERFORM SP1-APPEL-ASSU
+           PERFORM SP1-LIRE-ASSU
+           PERFORM SP1-TEST
+           ADD 1 TO CPT-QTTC
+           .
+
+       12000-INITIALISER-QTTC.
+           MOVE 102 TO CODE-FONCTION
+           PERFORM SP1-APPEL-QTTC
+           .
+
+      *BLOCS NO 20000S - TRAITEMENT DE ASSU POUR CREER QTTC
+
+       20000-TRAITEMENT.
+           PERFORM 21000-FAIRE-PAGE-DE-GARDE
+           PERFORM UNTIL CODE-RETOUR = '10'
+             PERFORM SP1-TEST
+             PERFORM 22000-ECRIRE-QUITTANCE
+             PERFORM SP1-LIRE-ASSU
+             ADD 1 TO CPT-QTTC
+           END-PERFORM
+           .
+
+       21000-FAIRE-PAGE-DE-GARDE.
+           MOVE 'RAPPORT SUR LES QUITTANCES' TO PDG-TEXTE
+           PERFORM 21100-ECRIRE-PDG
+           MOVE ALL '-' TO PDG-TEXTE
+           PERFORM 21100-ECRIRE-PDG
+           MOVE SPACES TO PDG-TEXTE
+           PERFORM 21100-ECRIRE-PDG
+           STRING 'USER: ' PARM-CONTENT
+             DELIMITED BY SIZE
+             INTO PDG-TEXTE
+           END-STRING
+           PERFORM 21100-ECRIRE-PDG
+           PERFORM 21200-FAIRE-DATE
+           STRING 'DATE: ' DATE-J '/' DATE-M '/' DATE-A
+             DELIMITED BY SIZE
+             INTO PDG-TEXTE
+           END-STRING
+           PERFORM 21100-ECRIRE-PDG
+           .
+
+       21100-ECRIRE-PDG.
+           MOVE PAGE-DE-GARDE TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       21200-FAIRE-DATE.
+           UNSTRING FUNCTION CURRENT-DATE(1:12) INTO WS-DATE
+           .
+
+       22000-ECRIRE-QUITTANCE.
+      *    PERFORM 22050-SAUT-PAGE
+      *    ECRIRE L'EN-TETE DU FICHIER DE QUITTANCE
+           PERFORM 22100-ECRIRE-LIGNE-SEP
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22300-ECRIRE-TITRE-QUITTANCE
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22100-ECRIRE-LIGNE-SEP
+      *    ECRIRE LES COORDONNEES DE L'INDIVIDU
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22400-ECRIRE-COORDONNEES
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22100-ECRIRE-LIGNE-SEP
+      *    ECRIRE LES INFORMATIONS SUR LA QUITTANCE
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22500-ECRIRE-CONTENU
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22100-ECRIRE-LIGNE-SEP
+           .
+
+      *22050-SAUT-PAGE.
+      *    MOVE SPACES TO ENRGSTRMNT
+      *    PERFORM SP1-ECRIRE-APAGE-QTTC
+      *    .
+
+       22100-ECRIRE-LIGNE-SEP.
+           MOVE QT-LIGNE-SEP TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22200-ECRIRE-LIGNE-VIDE-COLS.
+           MOVE QT-LIGNE-VIDE-COLS TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22300-ECRIRE-TITRE-QUITTANCE.
+           MOVE CPT-QTTC TO QT-TI-NUM
+           MOVE QT-TITRE TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22400-ECRIRE-COORDONNEES.
+           MOVE 'NOM' TO QT-CO-LABEL
+           MOVE NOMPRENOM TO QT-CO-VALUE
+           PERFORM 22410-ECRIRE-QT-COORDS
+           MOVE 'ADRESSE' TO QT-CO-LABEL
+           MOVE ADRESSE TO QT-CO-VALUE
+           PERFORM 22410-ECRIRE-QT-COORDS
+           MOVE 'CP-VILLE' TO QT-CO-LABEL
+           STRING CP SPACE VILLE
+             DELIMITED BY SIZE
+             INTO TMP-STRING
+           END-STRING
+           MOVE TMP-STRING TO QT-CO-VALUE
+           PERFORM 22410-ECRIRE-QT-COORDS
+           .
+
+       22410-ECRIRE-QT-COORDS.
+           MOVE QT-COORDS TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22500-ECRIRE-CONTENU.
+           PERFORM 22510-ECRIRE-PRIME
+           PERFORM 22520-ECRIRE-BONUS-MALUS
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22530-ECRIRE-LIGNE-SEP-HALF
+           PERFORM 22200-ECRIRE-LIGNE-VIDE-COLS
+           PERFORM 22540-ECRIRE-TOTAL
+           .
+
+       22510-ECRIRE-PRIME.
+           MOVE 'PRIME DE BASE' TO QT-LI2-LABEL
+           MOVE PRIME TO QT-LI2-VALUE
+           MOVE QT-LIGNE-2COLS TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22520-ECRIRE-BONUS-MALUS.
+           EVALUATE TRUE
+             WHEN BONMAL = 'B'
+               MOVE 'DEGREVEMENT' TO QT-LI4-LABC1
+               MOVE 'BONUS' TO QT-LI4-LABC2
+             WHEN BONMAL = 'M'
+               MOVE 'MAJORATION' TO QT-LI4-LABC1
+               MOVE 'MALUS' TO QT-LI4-LABC2
+             WHEN OTHER
+               MOVE 'INCONNU' TO QT-LI4-LABC1
+               MOVE '?' TO QT-LI4-LABC2
+           END-EVALUATE
+           COMPUTE TMP-CALCUL = PRIME * TAUX / 100
+           MOVE TMP-CALCUL TO QT-LI4-VALC1
+           MOVE TAUX  TO QT-LI4-VALC2
+           MOVE QT-LIGNE-4COLS TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22530-ECRIRE-LIGNE-SEP-HALF.
+           MOVE QT-LIGNE-SEP-HALF TO ENRGSTRMNT
+           PERFORM SP1-ECRIRE-QTTC
+           .
+
+       22540-ECRIRE-TOTAL.
+           MOVE 'TOTAL A PAYER' TO QT-LI2-LABEL
+           EVALUATE TRUE
+             WHEN BONMAL = 'B'
+               COMPUTE TMP-CALCUL = PRIME - TMP-CALCUL
+             WHEN BONMAL = 'M'
+               COMPUTE TMP-CALCUL = PRIME + TMP-CALCUL
+             WHEN OTHER
+               DISPLAY 'BONUS OU MALUS NON RENSEIGNE POUR ' MATRICULE
+           END-EVALUATE
+           IF BONMAL = 'B' OR BONMAL = 'M'
+             MOVE TMP-CALCUL TO QT-LI2-VALUE
+             MOVE QT-LIGNE-2COLS TO ENRGSTRMNT
+             PERFORM SP1-ECRIRE-QTTC
+           END-IF
+           .
+
+      * BLOCS NO 3000S - FIN DE LA PROCEDURE ET FERMERTURE DES FICHIERS
+
+       30000-FIN.
+           PERFORM 31000-FERMER-ASSU
+           PERFORM 32000-FERMER-QTTC
+           .
+
+       31000-FERMER-ASSU.
+           MOVE 500 TO CODE-FONCTION
+           PERFORM SP1-APPEL-ASSU
+           .
+
+       32000-FERMER-QTTC.
+           MOVE 500 TO CODE-FONCTION
+           PERFORM SP1-APPEL-QTTC
+           .

@@ -1,0 +1,23 @@
+//APIXXE JOB 'SDJ FORMATION',MSGLEVEL=(1,1),MSGCLASS=H,CLASS=A,
+//   NOTIFY=&SYSUID
+//*                                                                     01180000
+//*------------------------------------------------------*
+//* ===> CHANGER XX PAR N¢ DU GROUPE   (XX 01 @ 15)      *
+//*      CHANGER 'INFNCIXX' PAR VOTRE NOM DE PROGRAMME   *
+//*------------------------------------------------------*
+//*                                                                     01020000
+//JOBLIB  DD  DSN=DSN710.SDSNEXIT,DISP=SHR                              00260000
+//        DD  DSN=DSN710.SDSNLOAD,DISP=SHR                              00270000
+//        DD  DSN=CEE.SCEERUN,DISP=SHR                                  00270001
+//STEP1    EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                    01030000
+//SYSUDUMP DD SYSOUT=*                                                  01050000
+//SYSTSPRT DD SYSOUT=*                                                  01060000
+//SYSPRINT DD SYSOUT=*                                                  01070000
+//SYSOUT   DD SYSOUT=*                                                  01070000
+//SYSTSIN  DD *                                                         01100000
+DSN SYSTEM(DSN1)                                                        01110000
+RUN  PROGRAM(APIXXDB$) PLAN(APIXXDB$) -                                 01150000
+      LIB('FORMXX.SOURCE.PGMLIB')                                       01160000
+END                                                                     01170000
+//*                                                                     01180000
+//* ****** FIN DE EXECDB2 ********************                          01180000

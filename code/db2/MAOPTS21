@@ -1,0 +1,248 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS21.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 14 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STRUCTURE DES TABLES DB2 ---------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE ASSURES3
+           END-EXEC
+
+      *STRUCTURES POUR SQLCA ------------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *ZONES D'ECHANGE ------------------------------------------------
+
+       01 EMVT.
+          02 MAT               PIC X(6).
+          02 NOMPRE            PIC X(20).
+          02 RUE               PIC X(18).
+          02 CP                PIC X(5).
+          02 VILLE             PIC X(12).
+          02 VEHICU            PIC X.
+          02 PRIME             PIC S9(4)V9(2) COMP-3.
+          02 BM                PIC X.
+          02 TAUX              PIC S9(4) COMP.
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-FLAG               PIC 9.
+
+       01 L-SQLERRD            PIC S9(9) COMP-4.
+
+       01 L-EMVT.
+          02 L-MAT             PIC X(6).
+          02 L-NOMPRE          PIC X(20).
+          02 L-RUE             PIC X(18).
+          02 L-CP              PIC X(5).
+          02 L-VILLE           PIC X(12).
+          02 L-VEHICU          PIC X.
+          02 L-PRIME           PIC 9(4)V99.
+          02 L-BM              PIC X.
+          02 L-TAUX            PIC 99.
+          02 FILLER            PIC X.
+          02 L-TYPE            PIC X.
+          02 FILLER            PIC X(7).
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *///////////////////////////////////////////////////
+       PROCEDURE DIVISION USING L-FLAG, L-SQLERRD, L-EMVT.
+      *///////////////////////////////////////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-TRAITER
+           .
+
+
+      *BLOCS 100S - TRAITER LES DONNEES
+      *--------------------------------
+
+       100-TRAITER.
+           PERFORM 110-ALIMENTER-ZONE-ECHANGE
+           EVALUATE L-FLAG
+              WHEN 1
+                 PERFORM 120-CREER-LIGNE
+              WHEN 2
+                 PERFORM 130-MODIFIER-LIGNE
+              WHEN 3
+                 PERFORM 140-SUPPRIMER-LIGNE
+              WHEN OTHER
+                  DISPLAY 'ÝMAOPTS21¨ LA VALEUR DU FLAG
+      -    'DOIT ETRE DE 1, 2 OU 3!'
+                 MOVE 16 TO RETURN-CODE
+                 PERFORM FIN-PROGRAMME
+           END-EVALUATE
+           PERFORM 150-RENVOYER-SQLERRD
+           .
+
+
+       110-ALIMENTER-ZONE-ECHANGE.
+           MOVE L-MAT    TO MAT    OF EMVT
+           MOVE L-NOMPRE TO NOMPRE OF EMVT
+           MOVE L-RUE    TO RUE    OF EMVT
+           MOVE L-CP     TO CP     OF EMVT
+           MOVE L-VILLE  TO VILLE  OF EMVT
+           MOVE L-VEHICU TO VEHICU OF EMVT
+           MOVE L-PRIME  TO PRIME  OF EMVT
+           MOVE L-BM     TO BM     OF EMVT
+           MOVE L-TAUX   TO TAUX   OF EMVT
+           .
+
+
+       120-CREER-LIGNE.
+           EXEC SQL
+              INSERT INTO ASSURES3
+                 VALUES (
+                            :EMVT.MAT,
+                            :EMVT.NOMPRE,
+                            :EMVT.RUE,
+                            :EMVT.CP,
+                            :EMVT.VILLE,
+                            :EMVT.VEHICU,
+                            :EMVT.PRIME,
+                            :EMVT.BM,
+                            :EMVT.TAUX
+                        )
+           END-EXEC
+           .
+
+
+       130-MODIFIER-LIGNE.
+      *NE PAS FAIRE DU SET SUR LE MATRICULE !
+           EXEC SQL
+              UPDATE ASSURES3
+              SET NOMPRE = :EMVT.NOMPRE,
+                  RUE    = :EMVT.RUE,
+                  CP     = :EMVT.CP,
+                  VILLE  = :EMVT.VILLE,
+                  VEHICU = :EMVT.VEHICU,
+                  PRIME  = :EMVT.PRIME,
+                  BM     = :EMVT.BM,
+                  TAUX   = :EMVT.TAUX
+              WHERE MAT  = :EMVT.MAT
+           END-EXEC
+           EXIT
+           .
+
+
+       140-SUPPRIMER-LIGNE.
+           EXEC SQL
+              DELETE FROM ASSURES3
+              WHERE MAT = :EMVT.MAT
+           END-EXEC
+           .
+
+
+       150-RENVOYER-SQLERRD.
+           MOVE SQLERRD(3) TO L-SQLERRD
+           .
+
+
+      *BLOCS DB2 - GESTION DB2
+      *-----------------------
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           IF SQLCODE = -803
+              MOVE 0 TO L-SQLERRD
+           ELSE
+              DISPLAY 'ERREUR DB2'
+              DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+              CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+              PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+                 DISPLAY ERR-TXT (I)
+              END-PERFORM
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

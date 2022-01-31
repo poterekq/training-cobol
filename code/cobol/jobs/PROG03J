@@ -1,0 +1,7 @@
+//API1P3   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00001000
+//*                                                                     00002000
+//* EXECUTION DU PROGRAMME DE CONTINUE                                  00003001
+//*                                                                     00004000
+//CONTINUE EXEC PGM=PROG03                                              00005001
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00006000
+//SYSOUT   DD SYSOUT=H                                                  00007000

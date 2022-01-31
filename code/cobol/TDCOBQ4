@@ -1,0 +1,322 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. TDCOBQ4.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 09 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-370.
+      *SOURCE-COMPUTER. IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ASSURES ASSIGN TO ASSURES
+             FILE STATUS WS-F-AS.
+           SELECT QTTCPRM ASSIGN TO QTTCPRM
+             FILE STATUS WS-F-QT.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD ASSURES RECORDING F.
+       01 EASSURES.
+         02 A-MATRICULE PIC 9(6).
+         02 A-NOMPRENOM PIC X(20).
+         02 A-ADRESSE   PIC X(18).
+         02 A-CP        PIC 9(5).
+         02 A-VILLE     PIC X(12).
+         02 A-VEHICULE  PIC X.
+         02 A-PRIME     PIC 9(4)V99.
+         02 A-BONMAL    PIC X.
+         02 A-TAUX      PIC 99.
+         02 FILLER      PIC X(9).
+
+       FD QTTCPRM RECORDING F.
+       01 EQTTCPRM PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      * STATUT DES FICHIERS
+       77 WS-F-AS PIC XX.
+       77 WS-F-QT PIC XX.
+
+      * ZONES TEMPORAIRES
+       77 TMP-STRING PIC X(80).
+       77 TMP-CALCUL PIC 9(5)V99.
+
+      * COMPTEURS
+       01 CPT.
+         02 CPT-QTTC  PIC 99 VALUE 0.
+         02 CPT-LINES PIC 9 VALUE 3.
+
+      * DATE
+       01 WS-DATE.
+         02 DATE-A PIC X(4).
+         02 DATE-M PIC XX.
+         02 DATE-J PIC XX.
+         02 HEURE  PIC XX.
+         02 MINUTE PIC XX.
+
+      * PAGE DE GARDE
+       01 PAGE-DE-GARDE.
+         02 FILLER    PIC X(20).
+         02 PDG-TEXTE PIC X(40).
+         02 FILLER    PIC X(20).
+
+      * MODELE DE QUITTANCE
+       77 QT-LIGNE-VIDE PIC X(80).
+
+       01 QT-LIGNE-SEP.
+         02 FILLER PIC X     VALUE '+'.
+         02 FILLER PIC X(78) VALUE ALL '-'.
+         02 FILLER PIC X     VALUE '+'.
+
+       01 QT-LIGNE-VIDE-COLS.
+         02 FILLER PIC XX VALUE '| '.
+         02 FILLER PIC X(76).
+         02 FILLER PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-SEP-HALF.
+         02 FILLER PIC X     VALUE '|'.
+         02 FILLER PIC X(20).
+         02 FILLER PIC X(38) VALUE ALL '-'.
+         02 FILLER PIC X(20).
+         02 FILLER PIC X     VALUE '|'.
+
+       01 QT-TITRE.
+         02 FILLER PIC X(27) VALUE '| QUITTANCE DE PRIME'.
+         02 QT-TI-NUM PIC XX VALUE '00'.
+         02 FILLER PIC X(50).
+         02 FILLER PIC X(1)  VALUE '|'.
+
+       01 QT-COORDS.
+         02 FILLER      PIC XX VALUE '| '.
+         02 QT-CO-LABEL PIC X(25).
+         02 QT-CO-VALUE PIC X(20).
+         02 FILLER      PIC X(31).
+         02 FILLER      PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-2COLS.
+         02 FILLER       PIC XX VALUE '| '.
+         02 QT-LI2-LABEL PIC X(25).
+         02 QT-LI2-VALUE PIC ZZZ9V,99.
+         02 FILLER       PIC X(44).
+         02 FILLER       PIC XX VALUE ' |'.
+
+       01 QT-LIGNE-4COLS.
+         02 FILLER       PIC XX VALUE '| '.
+         02 QT-LI4-LABC1 PIC X(25).
+         02 QT-LI4-VALC1 PIC ZZZ9V,99.
+         02 FILLER       PIC X(5).
+         02 QT-LI4-LABC2 PIC X(5).
+         02 FILLER       PIC X(5).
+         02 QT-LI4-VALC2 PIC Z9.
+         02 FILLER       PIC X VALUE '%'.
+         02 FILLER       PIC X(26).
+         02 FILLER       PIC XX VALUE ' |'.
+
+       LINKAGE SECTION.
+       01 PARM.
+         02 PARM-LENGTH  PIC S9(4) COMP-3.
+         02 PARM-CONTENT PIC X(80).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING PARM.
+      D    DISPLAY PARM-CONTENT
+
+      * OUVERTURE DES FICHIERS
+           PERFORM DEBUT-PGM.
+
+      * CREATION DE LA PAGE DE GARDE DU DOCUMENT
+           PERFORM FAIRE-DATE
+           PERFORM FAIRE-PAGE-DE-GARDE
+
+           PERFORM CORPS-PGM UNTIL WS-F-AS = '10'
+
+      * FERMETURE DES FICHIERS
+           PERFORM FIN-PGM.
+
+           GOBACK.
+
+      * -------------------------------------------------------------- *
+
+      * VERIFICATION DE L'INTEGRITE DES FICHIERS
+       TEST-STAT-AS.
+           IF WS-F-AS NOT = '00'
+             DISPLAY 'ERREUR FICHIER ASSURES: ' WS-F-AS
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+       TEST-STAT-QT.
+           IF WS-F-QT NOT = '00'
+             DISPLAY 'ERREUR FICHIER QTTCPRM: ' WS-F-QT
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+      * DEBUT DE LA PROCEDURE AVEC OUVERTURE DES FICHIERS
+       DEBUT-PGM.
+           OPEN INPUT ASSURES
+           PERFORM TEST-STAT-AS
+           OPEN OUTPUT QTTCPRM
+           PERFORM TEST-STAT-QT
+           READ ASSURES
+           ADD 1 TO CPT-QTTC
+           .
+
+      * FIN DE LA PROCEDURE AVEC FERMERTURE DES FICHIERS
+       FIN-PGM.
+           CLOSE ASSURES
+           PERFORM TEST-STAT-AS
+           CLOSE QTTCPRM
+           PERFORM TEST-STAT-QT
+           .
+
+      * TRAITEMENT GENERAL
+       CORPS-PGM.
+           PERFORM TEST-STAT-AS
+           PERFORM ECRIRE-QUITTANCE
+           READ ASSURES
+           ADD 1 TO CPT-QTTC
+           .
+
+      * CREATION DE LA PAGE DE GARDE DU DOCUMENT
+       FAIRE-DATE.
+           UNSTRING FUNCTION CURRENT-DATE(1:12) INTO WS-DATE
+           .
+
+       FAIRE-PAGE-DE-GARDE.
+           MOVE 'RAPPORT SUR LES QUITTANCES' TO PDG-TEXTE
+           WRITE EQTTCPRM FROM PAGE-DE-GARDE
+           MOVE ALL '-' TO PDG-TEXTE
+           WRITE EQTTCPRM FROM PAGE-DE-GARDE
+           MOVE SPACES TO PDG-TEXTE
+           WRITE EQTTCPRM FROM PAGE-DE-GARDE
+           STRING 'USER: ' PARM-CONTENT
+             DELIMITED BY SIZE
+             INTO PDG-TEXTE
+           END-STRING
+           WRITE EQTTCPRM FROM PAGE-DE-GARDE
+           STRING 'DATE: ' DATE-J '/' DATE-M '/' DATE-A
+             DELIMITED BY SIZE
+             INTO PDG-TEXTE
+           END-STRING
+           WRITE EQTTCPRM FROM PAGE-DE-GARDE
+           .
+
+      * CREATION DU MODELE DE QUITTANCE
+       ECRIRE-LIGNE-VIDE-COLS.
+           PERFORM VARYING CPT-LINES FROM 1 BY 1 UNTIL CPT-LINES >= 2
+             WRITE EQTTCPRM FROM QT-LIGNE-VIDE-COLS
+           END-PERFORM
+           .
+
+       ECRIRE-COORDONNEES.
+           MOVE 'NOM' TO QT-CO-LABEL
+           MOVE A-NOMPRENOM TO QT-CO-VALUE
+           WRITE EQTTCPRM FROM QT-COORDS
+           MOVE 'ADRESSE' TO QT-CO-LABEL
+           MOVE A-ADRESSE TO QT-CO-VALUE
+           WRITE EQTTCPRM FROM QT-COORDS
+           MOVE 'CP-VILLE' TO QT-CO-LABEL
+           STRING A-CP SPACE A-VILLE
+             DELIMITED BY SIZE
+             INTO TMP-STRING
+           END-STRING
+           MOVE TMP-STRING TO QT-CO-VALUE
+           WRITE EQTTCPRM FROM QT-COORDS
+           .
+
+       ECRIRE-CONTENU.
+           PERFORM ECRIRE-PRIME
+           PERFORM ECRIRE-BONUS-MALUS
+           WRITE EQTTCPRM FROM QT-LIGNE-VIDE-COLS
+           WRITE EQTTCPRM FROM QT-LIGNE-SEP-HALF
+           WRITE EQTTCPRM FROM QT-LIGNE-VIDE-COLS
+           PERFORM ECRIRE-TOTAL
+           .
+
+       ECRIRE-PRIME.
+           MOVE 'PRIME DE BASE' TO QT-LI2-LABEL
+           MOVE A-PRIME TO QT-LI2-VALUE
+           WRITE EQTTCPRM FROM QT-LIGNE-2COLS
+           .
+
+       ECRIRE-BONUS-MALUS.
+           EVALUATE TRUE
+             WHEN A-BONMAL = 'B'
+               MOVE 'DEGREVEMENT' TO QT-LI4-LABC1
+               MOVE 'BONUS' TO QT-LI4-LABC2
+             WHEN A-BONMAL = 'M'
+               MOVE 'MAJORATION' TO QT-LI4-LABC1
+               MOVE 'MALUS' TO QT-LI4-LABC2
+             WHEN OTHER
+               MOVE 'INCONNU' TO QT-LI4-LABC1
+               MOVE '?' TO QT-LI4-LABC2
+           END-EVALUATE
+           COMPUTE TMP-CALCUL = A-PRIME * A-TAUX / 100
+           MOVE TMP-CALCUL TO QT-LI4-VALC1
+           MOVE A-TAUX  TO QT-LI4-VALC2
+           WRITE EQTTCPRM FROM QT-LIGNE-4COLS
+           .
+
+       ECRIRE-TOTAL.
+           MOVE 'TOTAL A PAYER' TO QT-LI2-LABEL
+           EVALUATE TRUE
+             WHEN A-BONMAL = 'B'
+               COMPUTE TMP-CALCUL = A-PRIME - TMP-CALCUL
+             WHEN A-BONMAL = 'M'
+               COMPUTE TMP-CALCUL = A-PRIME + TMP-CALCUL
+             WHEN OTHER
+               DISPLAY 'BONUS OU MALUS NON RENSEIGNE POUR ' A-MATRICULE
+           END-EVALUATE
+           IF A-BONMAL = 'B' OR A-BONMAL = 'M'
+             MOVE TMP-CALCUL TO QT-LI2-VALUE
+             WRITE EQTTCPRM FROM QT-LIGNE-2COLS
+           END-IF
+           .
+
+       ECRIRE-TITRE-QUITTANCE.
+           MOVE CPT-QTTC TO QT-TI-NUM
+           WRITE EQTTCPRM FROM QT-TITRE
+           .
+
+       ECRIRE-QUITTANCE.
+           WRITE EQTTCPRM FROM QT-LIGNE-VIDE AFTER ADVANCING PAGE
+
+           WRITE EQTTCPRM FROM QT-LIGNE-SEP
+
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+           PERFORM ECRIRE-TITRE-QUITTANCE
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+
+           WRITE EQTTCPRM FROM QT-LIGNE-SEP
+
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+           PERFORM ECRIRE-COORDONNEES
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+
+           WRITE EQTTCPRM FROM QT-LIGNE-SEP
+
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+           PERFORM ECRIRE-CONTENU
+           PERFORM ECRIRE-LIGNE-VIDE-COLS
+
+           WRITE EQTTCPRM FROM QT-LIGNE-SEP
+           .

@@ -1,0 +1,301 @@
+      *///////////////////////
+      *IDENTIFICATION DIVISION
+      *///////////////////////
+
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. TPPGM32.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 06 JANVIER 2022.
+
+
+      *////////////////////
+      *ENVIRONMENT DIVISION
+      *////////////////////
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+
+       SOURCE-COMPUTER.
+             IBM-370.
+      *      IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER.
+             IBM-370.
+
+
+      */////////////
+      *DATA DIVISION
+      */////////////
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+      *INCLURE LA STRUCTURE DES TABLES DB2
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+             INCLUDE RAYONS
+           END-EXEC
+
+           EXEC SQL
+             INCLUDE AUTEURS
+           END-EXEC
+
+      *VARIABLES UTILITAIRES
+
+       01 ERR-MSG.
+         02 ERR-LONG   PIC S9(4) COMP VALUE +720.
+         02 ERR-TXT    PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG PIC S9(9) COMP VALUE 72.
+       01 I            PIC 99.
+
+       01 TMP-SALLE PIC 9 VALUE 0.
+
+       01 NB-AUTEURS PIC 9 VALUE 0.
+
+      *TABLEAUX
+
+       01 LONGUEUR.
+         02 LON-RAYONS  PIC S9(4) BINARY VALUE 1.
+         02 LON-AUTEURS PIC S9(4) BINARY VALUE 1.
+
+       01 TAB-RAYONS.
+         02 ROW-RAYONS OCCURS 1 TO 10 TIMES
+                       DEPENDING ON LON-RAYONS
+                       INDEXED BY IX-RAYONS.
+           03 RAYON PIC 9 VALUE ZERO.
+           03       PIC X VALUE ' '.
+           03 SALLE PIC 9 VALUE ZERO.
+
+       01 TAB-AUTEURS.
+         02 ROW-AUTEURS OCCURS 1  TO 20 TIMES
+                        DEPENDING ON LON-AUTEURS
+                        INDEXED BY IX-AUTEURS.
+           03 AUTEUR-TEXT PIC X(8)  VALUE SPACE.
+           03             PIC X     VALUE ' '.
+           03 NE-EN       PIC 9(4)  VALUE ZERO.
+           03             PIC X     VALUE ' '.
+           03 LIEU-TEXT   PIC X(20) VALUE SPACE.
+           03             PIC X     VALUE ' '.
+           03 RAYON       PIC 9     VALUE ZERO.
+
+      *DECLARATION CURSEURS
+
+           EXEC SQL
+             DECLARE C_RAYONS CURSOR FOR
+               SELECT *
+               FROM API1.RAYONS
+               ORDER BY RAYON
+             FOR FETCH ONLY
+           END-EXEC
+
+           EXEC SQL
+             DECLARE C_AUTEURS CURSOR FOR
+               SELECT *
+               FROM API1.AUTEURS
+               ORDER BY RAYON
+             FOR FETCH ONLY
+           END-EXEC
+
+
+      *//////////////////
+      *PROCEDURE DIVISION
+      *//////////////////
+
+       PROCEDURE DIVISION.
+           PERFORM 000-RACINE
+           GOBACK
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+      * PARAGRAPHES UTILITAIRES
+
+       PARAG-ERR.
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           STOP RUN
+           .
+
+
+      *CURSEURS
+
+       CURS-RAYONS-OPEN.
+           EXEC SQL
+             OPEN C_RAYONS
+           END-EXEC
+           .
+
+
+       CURS-RAYONS-FETCH.
+           INITIALIZE DCLRAYONS
+           EXEC SQL
+             FETCH C_RAYONS
+             INTO :DCLRAYONS
+           END-EXEC
+           .
+
+
+       CURS-RAYONS-CLOSE.
+           EXEC SQL
+             CLOSE C_RAYONS
+           END-EXEC
+           .
+
+
+       CURS-AUTEURS-OPEN.
+           EXEC SQL
+             OPEN C_AUTEURS
+           END-EXEC
+           .
+
+
+       CURS-AUTEURS-FETCH.
+           INITIALIZE DCLAUTEURS
+           EXEC SQL
+             FETCH C_AUTEURS
+             INTO :DCLAUTEURS
+           END-EXEC
+           .
+
+
+       CURS-AUTEURS-CLOSE.
+           EXEC SQL
+             CLOSE C_AUTEURS
+           END-EXEC
+           .
+
+
+      *CORPS D'EXECUTION DU PROGRAMME
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-INITIALISATION
+           PERFORM 200-TRAITEMENT
+           .
+
+
+       100-INITIALISATION.
+           PERFORM 110-OUVRIR-CURSEURS
+           PERFORM 120-REMPLIR-TAB-RAYONS
+      D    PERFORM 121-AFFICHER-TAB-RAYONS
+           PERFORM 130-REMPLIR-TAB-AUTEURS
+      D    PERFORM 131-AFFICHER-TAB-AUTEURS
+           PERFORM 140-FERMER-CURSEURS
+           .
+
+
+       110-OUVRIR-CURSEURS.
+           PERFORM CURS-RAYONS-OPEN
+           PERFORM CURS-AUTEURS-OPEN
+           .
+
+
+       120-REMPLIR-TAB-RAYONS.
+           PERFORM CURS-RAYONS-FETCH
+           PERFORM UNTIL SQLCODE NOT = ZERO
+             MOVE CORRESPONDING DCLRAYONS TO ROW-RAYONS(LON-RAYONS)
+             PERFORM CURS-RAYONS-FETCH
+             IF SQLCODE = 0
+               ADD 1 TO LON-RAYONS
+             END-IF
+           END-PERFORM
+           .
+
+
+       121-AFFICHER-TAB-RAYONS.
+           SET IX-RAYONS TO 1
+           PERFORM UNTIL IX-RAYONS > LON-RAYONS
+             DISPLAY ROW-RAYONS(IX-RAYONS)
+             SET IX-RAYONS UP BY 1
+           END-PERFORM
+           .
+
+
+       130-REMPLIR-TAB-AUTEURS.
+           PERFORM CURS-AUTEURS-FETCH
+           PERFORM UNTIL SQLCODE NOT = ZERO
+             MOVE CORRESPONDING DCLAUTEURS TO ROW-AUTEURS(LON-AUTEURS)
+             MOVE AUTEUR-TEXT OF DCLAUTEURS TO
+                  AUTEUR-TEXT OF ROW-AUTEURS(LON-AUTEURS)
+             MOVE LIEU-TEXT OF DCLAUTEURS TO
+                  LIEU-TEXT OF ROW-AUTEURS(LON-AUTEURS)
+             PERFORM CURS-AUTEURS-FETCH
+             IF SQLCODE = 0
+               ADD 1 TO LON-AUTEURS
+             END-IF
+           END-PERFORM
+           .
+
+
+       131-AFFICHER-TAB-AUTEURS.
+           SET IX-AUTEURS TO 1
+           PERFORM UNTIL IX-AUTEURS > LON-AUTEURS
+             DISPLAY ROW-AUTEURS(IX-AUTEURS)
+             SET IX-AUTEURS UP BY 1
+           END-PERFORM
+           .
+
+
+       140-FERMER-CURSEURS.
+           PERFORM CURS-RAYONS-CLOSE
+           PERFORM CURS-AUTEURS-CLOSE
+           .
+
+
+       200-TRAITEMENT.
+           PERFORM 210-ITERATION-TABLEAUX
+           .
+
+
+       210-ITERATION-TABLEAUX.
+           DISPLAY 'INFORMATIONS SUR LA BIBLIOTHEQUE'
+           DISPLAY '--------------------------------'
+           DISPLAY SPACES
+
+           SET IX-RAYONS TO 1
+
+           PERFORM UNTIL IX-RAYONS > LON-RAYONS
+      *      AFFICHER LES SALLES ET RAYONS
+             IF SALLE OF ROW-RAYONS(IX-RAYONS) NOT = TMP-SALLE
+               DISPLAY 'SALLE ' SALLE OF ROW-RAYONS(IX-RAYONS)
+               DISPLAY '-------'
+               DISPLAY SPACES
+               MOVE SALLE OF ROW-RAYONS(IX-RAYONS) TO TMP-SALLE
+             END-IF
+             DISPLAY 'RAYON ' RAYON OF ROW-RAYONS(IX-RAYONS)
+
+             SET IX-AUTEURS TO 1
+
+      *      AFFICHER LES AUTEURS
+             PERFORM UNTIL IX-AUTEURS > LON-AUTEURS
+               SEARCH ROW-AUTEURS
+                 AT END
+                   IF NB-AUTEURS = 0
+                     DISPLAY 'AUCUN AUTEUR...'
+                   END-IF
+                 WHEN RAYON OF ROW-AUTEURS(IX-AUTEURS) =
+                      RAYON OF ROW-RAYONS(IX-RAYONS)
+                   DISPLAY ROW-AUTEURS(IX-AUTEURS)
+                   ADD 1 TO NB-AUTEURS
+                   SET IX-AUTEURS UP BY 1
+               END-SEARCH
+             END-PERFORM
+
+             MOVE 0 TO NB-AUTEURS
+             SET IX-RAYONS UP BY 1
+             DISPLAY SPACES
+           END-PERFORM
+           .

@@ -1,0 +1,14 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CODERET.
+      * -----------------------------
+      * DONNE UN CODE RETOUR INVALIDE
+      * -----------------------------
+       DATA DIVISION.
+       LINKAGE SECTION.
+       01 PARM.
+         05        PIC XX.
+         05 L-PARM PIC 9999.
+       PROCEDURE DIVISION USING PARM.
+           MOVE L-PARM TO RETURN-CODE
+           STOP RUN
+           .

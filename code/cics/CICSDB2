@@ -1,0 +1,57 @@
+//APIXXCDB JOB NOTIFY=&SYSUID,CLASS=C,MSGCLASS=H,MSGLEVEL=(1,1)
+//*
+//*
+//********************************************************************
+//*       COMPILE  - COMPILE CICS/DB2 COBOL/370 ET LINKEDIT PROGRAMME*
+//*                  DB2 VERSION 7                                   *
+//********************************************************************
+//*------------------------------------------------------*
+//* ===> MODIFIER XX PAR N¢ DU GROUPE  (XX 01 @ 15)      *
+//*      CHANGER 'INFNCDXX' PAR VOTRE NOM DE PROGRAMME   *
+//*------------------------------------------------------*=-=-=-=-=-=*
+//*                                                                  *
+//*            LE PLAN  EST      : FORMATIO                          *
+//*            LA COLLECTION EST : CFORMATION                        *
+//*                                                                  *
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//*   CETTE PROCEDURE CONTIENT 6 STEPS :                             *
+//*         1/  PRECOMPILE  DB2                                      *
+//*         2/  PRECOMPILE  CICS/TS                                  *
+//*         3/  COMPILE COBOL II                                     *
+//*         4/  LINKEDIT  (DANS FORM.CICS.LOAD)                      *
+//*         5/  BIND PACKAGE A PARTIR DE APIXX.SOURCE.DBRMLIB        *
+//*         6/  GRANT                                                *
+//*  LES   PROCEDURES  SE TROUVENT DANS SDJ.FORM.PROCLIB             *
+//*=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*
+//***********************************************************
+//PROCLIB  JCLLIB ORDER=SDJ.FORM.PROCLIB
+//*                                                                     00342400
+//         SET SYSUID=APIXX,                                            00342700
+//             NOMPGM=INFNCDXX                                          00342700
+//*                                                                     00342400
+//APPROC   EXEC COMPCIDB
+//STEPDB2.SYSLIB   DD DSN=FORMXX.SOURCE.DCLGEN,DISP=SHR
+//                 DD DSN=SDJ.CICS.COPY,DISP=SHR
+//STEPDB2.SYSIN    DD DSN=FORMXX.SOURCE.CICS(&NOMPGM),DISP=SHR
+//STEPDB2.DBRMLIB  DD DSN=FORMXX.SOURCE.DBRMLIB(&NOMPGM),DISP=SHR
+//*                                                                     00342400
+//*                                                                     00342400
+//*--------------- ETAPE DE BIND ----------                             00342400
+//* <<<<<<<<<<<<<  BIND PLAN  ET  GRANT >>>>>>>>>>>>>>>>>>>>>>>*
+//BIND     EXEC PGM=IKJEFT01,COND=(4,LT)                                00342700
+//STEPLIB  DD  DSN=DSN710.SDSNLOAD,DISP=SHR                             00342700
+//*DBRMLIB  DD  DSN=&SYSUID..SOURCE.DBRMLIB,DISP=SHR                    00343300
+//DBRMLIB  DD  DSN=FORMXX.SOURCE.DBRMLIB,DISP=SHR                       00343300
+//SYSTSPRT DD  SYSOUT=*,OUTLIM=25000                                    00343000
+//SYSTSIN  DD *                                                         01100000
+  DSN SYSTEM(DSN1)                                                      01140000
+  BIND PACKAGE (CFORMATION) -                                           01140000
+     MEMBER (INFNCDXX)      -                                           01140000
+     ACTION (REPLACE)       -                                           01140000
+     QUALIFIER (APIXX)      -                                           01140000
+     DEGREE    (ANY)        -                                           01140000
+     EXPLAIN   (NO)         -                                           01140000
+     ISOLATION (CS)         -                                           01140000
+     RELEASE   (COMMIT)     -                                           01140000
+     VALIDATE  (BIND)                                                   01140000
+/*                                                                      01180000

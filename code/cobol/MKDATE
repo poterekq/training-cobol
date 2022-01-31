@@ -1,0 +1,110 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * GENERE UNE EN-TETE AVEC L'UTILISATEUR ET LA DATE
+
+       PROGRAM-ID. MKDATE.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 15 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+       01 HORODATAGE.
+         02 HORO-AA PIC X(4).
+         02 HORO-MO PIC XX.
+         02 HORO-JJ PIC XX.
+         02 HORO-HH PIC XX.
+         02 HORO-MI PIC XX.
+
+       01 TAB-DOW.
+         02 VALUE '     LUNDI' PIC X(10).
+         02 VALUE '     MARDI' PIC X(10).
+         02 VALUE '  MERCREDI' PIC X(10).
+         02 VALUE '     JEUDI' PIC X(10).
+         02 VALUE '  VENDREDI' PIC X(10).
+         02 VALUE '    SAMEDI' PIC X(10).
+         02 VALUE '  DIMANCHE' PIC X(10).
+       01 REDEFINES TAB-DOW.
+         02 TAB-DOW-X PIC X(10) OCCURS 7.
+
+       77 WS-DOW-9 PIC 9.
+
+       01 LIGNE.
+         02 FILLER     PIC X(6) VALUE 'USER: '.
+         02 LIGNE-USER PIC X(4).
+         02 FILLER     PIC X(46).
+         02 LIGNE-JOUR PIC X(10).
+         02 FILLER     PIC X(4) VALUE ' LE '.
+         02 LIGNE-DATE PIC X(10).
+
+       LINKAGE SECTION.
+       77 CHOIX  PIC X.
+       77 USER   PIC X(4).
+       01 SORTIE PIC X(80).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING CHOIX USER SORTIE.
+           PERFORM RECUPERER-HORODATAGE
+
+           EVALUATE CHOIX
+             WHEN 'H'
+               PERFORM RETOURNER-HEURE
+             WHEN 'D'
+               PERFORM RETOURNER-DATE
+             WHEN OTHER
+               MOVE SPACES TO SORTIE
+               DISPLAY 'CODE CHOIX INCONNU, VALEUR LUE: ' CHOIX
+               DISPLAY 'DEVRAIT ETRE H (HEURE) OU D (DATE).'
+           END-EVALUATE
+
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+       RECUPERER-HORODATAGE.
+           UNSTRING FUNCTION CURRENT-DATE INTO HORODATAGE.
+           ACCEPT WS-DOW-9 FROM DAY-OF-WEEK
+           .
+
+       RETOURNER-HEURE.
+           MOVE SPACES TO LIGNE
+           STRING '     ' HORO-HH ':' HORO-MI
+             DELIMITED BY SIZE
+             INTO LIGNE-DATE
+           END-STRING
+           MOVE LIGNE TO SORTIE
+           .
+
+       RETOURNER-DATE.
+           MOVE USER TO LIGNE-USER
+           MOVE TAB-DOW-X(WS-DOW-9) TO LIGNE-JOUR
+           STRING HORO-AA '/' HORO-MO '/' HORO-JJ
+             DELIMITED BY SIZE
+             INTO LIGNE-DATE
+           END-STRING
+           MOVE LIGNE TO SORTIE
+           .

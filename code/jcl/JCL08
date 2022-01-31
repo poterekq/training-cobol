@@ -1,0 +1,16 @@
+//API1J7   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*
+//*-----------------------------------------------------------*         00000230
+//*     COPIER UN JCL SUR L'IMPRIMANTE                        *         00000230
+//*-----------------------------------------------------------*
+//*
+//COPYF    EXEC  PGM=IEBGENER
+//SYSUT1   DD    DATA,DLM=XX
+//JCL1     DD    DSN=API1.SOURCE.JCL(JCL01),DISP=SHR
+//JCL2     DD    DSN=API1.SOURCE.JCL(JCL02),DISP=SHR
+//JCL3     DD    DSN=API1.SOURCE.JCL(JCL03),DISP=SHR
+XX
+//SYSUT2   DD    DSN=API1.TEST.SEQ,DISP=(NEW,CATLG,DELETE),
+// SPACE=(TRK,(3,1)),LRECL=80,BLKSIZE=3200,RECFM=FB
+//SYSPRINT DD    SYSOUT=H
+//SYSIN    DD    *

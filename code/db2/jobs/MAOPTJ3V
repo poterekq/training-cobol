@@ -1,0 +1,118 @@
+//APIXMJ3V JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,3)
+//*
+//**********************************************************************
+//*                                                                    *
+//* ---------------------- PROJET COBOL - VSAM ----------------------- *
+//*                                                                    *
+//* AUTEUR   : QUENTIN POTEREK                                         *
+//* ----------                                                         *
+//*                                                                    *
+//* DATE     : 20 DECEMBRE 2021                                        *
+//* ----------                                                         *
+//*                                                                    *
+//* FONCTION : CE JCL EXECUTE LA CHAINE DE TRAITEMENT DE MISE A JOUR   *
+//* ---------- DU FICHIER DES ASSURES (API1.COB.ASSURES) A PARTIR      *
+//*            DU FICHIER DES MOUVEMENTS (API1.COB.MVTPROJ).           *
+//*                                                                    *
+//**********************************************************************
+//*
+//* -------------------------------------------------------------------
+//* STEP0 :
+//* CREATION DU FICHIER API1.ACTIF.KSDSMESS (KSDS)
+//* -------------------------------------------------------------------
+//*
+//STEP0    EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//FIMESS   DD   DSN=API0.SOURCE.COPY(MESS),DISP=SHR
+//SYSIN    DD   *
+ DELETE API1.ACTIF.KSDSMESS
+ DEF CL (NAME(API1.ACTIF.KSDSMESS) IXD -
+         CISZ(4096) KEYS (3 0) TRK(1 2) FSPC(10 30) RECSZ(80 80))
+ REPRO IFILE(FIMESS) ODS(API1.ACTIF.KSDSMESS)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP1 :
+//* TRIER LE FICHIER API1.COB.ASSURES (SEQ)
+//* -------------------------------------------------------------------
+//*
+//STEP1    EXEC PGM=SORT
+//SORTIN   DD   DSN=API1.COB.ASSURES,DISP=SHR
+//SORTOUT  DD   DSN=&&ASSURES2,DISP=(NEW,PASS),
+// SPACE=(TRK,(1,1)),LRECL=80,BLKSIZE=800,RECFM=FB
+//SYSOUT   DD   SYSOUT=H
+//SYSIN    DD   *
+ SORT FIELDS=(1,6,BI,A)        TRI SUR LE MATRICULE DES ASSURES
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP2 :
+//* CREER L'ENVELOPPE KSDS API1.ACTIF.ASSURES3 (KSDS)
+//* -------------------------------------------------------------------
+//*
+//STEP2    EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//SYSIN    DD   *
+ DELETE API1.ACTIF.ASSURES3
+ DEF CL (NAME(API1.ACTIF.ASSURES3) IXD -
+         CISZ(4096) KEYS (6 0) TRK(1 2) FSPC(10 30) RECSZ(80 80))
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP3 :
+//* ALIMENTER ASSURES3 (KSDS) AVEC LE FICHIER TRIE ASSURES (SEQ)
+//* -------------------------------------------------------------------
+//*
+//STEP3    EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//ASSURES2 DD   DSN=&&ASSURES2,DISP=(OLD,DELETE)
+//SYSIN    DD   *
+ REPRO IFILE(ASSURES2) ODS(API1.ACTIF.ASSURES3)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP4 :
+//* TRIER LE FICHIER API1.COB.MVTPROJ (SEQ)
+//* -------------------------------------------------------------------
+//*
+//STEP4    EXEC PGM=SORT
+//SORTIN   DD   DSN=API1.COB.MVTPROJ,DISP=SHR
+//SORTOUT  DD   DSN=&&FMVTSTE,DISP=(NEW,PASS),
+// SPACE=(TRK,(1,1)),LRECL=80,BLKSIZE=800,RECFM=FB
+//SYSOUT   DD   SYSOUT=H
+//SYSIN    DD   *
+ SORT FIELDS=(1,6,BI,A)        TRI SUR LE MATRICULE DE MVTPROJ
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP5 :
+//* CREER L'ENVELOPPE ESDS API1.ACTIF.FMVTSE (ESDS)
+//* ALIMENTER FMVTSE (ESDS) AVEC LE FICHIER TRIE FMVTSTE (SEQ)
+//* -------------------------------------------------------------------
+//*
+//STEP5    EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//FMVTSTE  DD   DSN=&&FMVTSTE,DISP=(OLD,DELETE)
+//SYSIN    DD   *
+ DELETE API1.ACTIF.FMVTSE
+ DEF CL (NAME(API1.ACTIF.FMVTSE) NIXD -
+         CISZ(4096) TRK(1 2) RECSZ(80 80))
+ REPRO IFILE(FMVTSTE) ODS(API1.ACTIF.FMVTSE)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP6 :
+//* METTRE A JOUR LE FICHIER ASSURES3 (KSDS) ET ALIMENTER ETATANO (SEQ)
+//* LES STATISTIQUES D'EXECUTION DU PROGRAMME MAJAS SONT EN SYSOUT
+//* -------------------------------------------------------------------
+//*
+//*STEP6    EXEC PGM=MAOPTP30
+//STEP6    EXEC PGM=MAOPTP31
+//STEPLIB  DD   DSN=API1.COBOL.LOAD,DISP=SHR
+//ASS      DD   DSN=API1.ACTIF.ASSURES3,DISP=SHR
+//MVT      DD   DSN=API1.ACTIF.FMVTSE,DISP=SHR
+//SYSOUT   DD   SYSOUT=H
+//SYSIN    DD   *
+V
+/*
+//

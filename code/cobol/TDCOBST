@@ -1,0 +1,239 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME:
+      * LOREM IPSUM
+      *
+
+       PROGRAM-ID. TDCOBST.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 13 DECEMBRE 2021
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * -------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ASS ASSIGN TO ASS
+             FILE STATUS WS-F-ASS.
+           SELECT STA ASSIGN TO STA
+             FILE STATUS WS-F-STA.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD ASS RECORDING F.
+       01 EASS.
+         COPY CASSURE3.
+
+       FD STA RECORDING F.
+       01 ESTA PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      *STATUT DES FICHIERS
+       01 FILE-STATUS.
+         02 WS-F-ASS PIC XX.
+         02 WS-F-STA PIC XX.
+
+      *ZONES DE CONTROLE POUR L'ITERATION SUR LES FICHIERS
+       01 CTRL.
+         02 CTRL-DEPT PIC XX.
+         02 CTRL-TYPE PIC X.
+
+      *ZONES DE CONTROLE POUR LES STATISTIQUES
+       01 TOTAUX.
+         02 TOTAL-TYPE PIC 9(8)V99.
+         02 TOTAL-DEPT PIC 9(8)V99.
+         02 TOTAL-GENE PIC 9(8)V99.
+
+      *FORMATAGE DES SORTIES
+       01 LIGNES-HEADER.
+         02 LH-LABEL PIC X(12).
+         02 FILLER   PIC XXX VALUE ' : '.
+         02 LH-VALUE PIC XX.
+         02 FILLER   PIC X(63).
+
+       01 LIGNES-CONTENU.
+         02 FILLER   PIC X(15).
+         02 LC-NOM   PIC X(20).
+         02 FILLER   PIC X(22).
+         02 LC-MONT  PIC ZBZZ9V,99.
+         02 LC-LAB2  REDEFINES LC-MONT PIC X(8).
+         02 FILLER   PIC X(15).
+
+       01 LIGNES-TOTAUX.
+         02 LT-LABEL PIC X(20).
+         02 FILLER   PIC XXX VALUE ' : '.
+         02 LT-VALUE PIC XX.
+         02 FILLER   PIC X(27).
+         02 LT-MONT  PIC ZZBZZZBZZ9V,99.
+         02 FILLER   PIC X(15).
+
+       01 LIGNES-FORMATAGE.
+         02 LIGNE-VIDE PIC X(80).
+         02 LIGNE-DASH PIC X(80) VALUE ALL '-'.
+         02 LIGNE-MONT-DASH.
+           03 FILLER   PIC X(57).
+           03 FILLER   PIC X(8) VALUE ALL '-'.
+           03 FILLER   PIC X(25).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+           PERFORM DEBUT-PGM
+           PERFORM TRAITEMENT-PGM
+           PERFORM FIN-PGM
+           GOBACK.
+
+      * -------------------------------------------------------------- *
+
+      *TESTS SUR L'INTEGRITE DES FICHIERS
+       TEST-STAT-ASS.
+           IF WS-F-ASS NOT = '00'
+             DISPLAY 'ERREUR FICHIER ASS: ' WS-F-ASS
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+       TEST-STAT-STA.
+           IF WS-F-STA NOT = '00'
+             DISPLAY 'ERREUR FICHIER STA: ' WS-F-STA
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+      *DEBUT DU PROGRAMME
+       DEBUT-PGM.
+      *    INITIALISATION DES ZONES
+           INITIALIZE TOTAUX
+           INITIALIZE CTRL
+
+      *    OUVERTURE DES FICHIERS
+           OPEN INPUT ASS
+           PERFORM TEST-STAT-ASS
+           OPEN OUTPUT STA
+           PERFORM TEST-STAT-STA
+
+           READ ASS
+           PERFORM TEST-STAT-ASS
+           MOVE CP1-A3 TO CTRL-DEPT
+           MOVE TYPE-V-A3 TO CTRL-TYPE
+           .
+
+      *FIN DU PROGRAMME
+       FIN-PGM.
+           CLOSE STA
+           PERFORM TEST-STAT-STA
+           CLOSE ASS
+           PERFORM TEST-STAT-ASS
+           .
+
+      *TRAITEMENTS REALISES DANS LE PROGRAMME
+       TRAITEMENT-PGM.
+           PERFORM UNTIL WS-F-ASS = '10'
+             PERFORM TEST-STAT-ASS
+             PERFORM ECRIRE-DEPT
+
+             PERFORM UNTIL CP1-A3 NOT = CTRL-DEPT
+             OR WS-F-ASS = '10'
+               PERFORM ECRIRE-TYPE
+               PERFORM ECRIRE-HEADER-INDIVIDUS
+
+               PERFORM UNTIL TYPE-V-A3 NOT = CTRL-TYPE
+               OR WS-F-ASS = '10'
+                 ADD PRIME-A3 TO TOTAL-TYPE TOTAL-DEPT TOTAL-GENE
+                 PERFORM ECRIRE-INDIVIDUS
+                 READ ASS
+               END-PERFORM
+
+               PERFORM ECRIRE-TOTAL-TYPE
+               MOVE TYPE-V-A3 TO CTRL-TYPE
+               MOVE 0 TO TOTAL-TYPE
+
+             END-PERFORM
+
+             PERFORM ECRIRE-TOTAL-DEPT
+             MOVE CP1-A3 TO CTRL-DEPT
+             MOVE TYPE-V-A3 TO CTRL-TYPE
+             MOVE 0 TO TOTAL-DEPT
+
+           END-PERFORM
+           PERFORM ECRIRE-TOTAL-GENE
+           .
+
+       ECRIRE-DEPT.
+           MOVE 'DEPARTEMENT' TO LH-LABEL
+           MOVE CTRL-DEPT TO LH-VALUE
+           WRITE ESTA FROM LIGNES-HEADER
+           .
+
+       ECRIRE-TYPE.
+           MOVE 'TYPE' TO LH-LABEL
+           MOVE CTRL-TYPE TO LH-VALUE
+           WRITE ESTA FROM LIGNE-VIDE
+           WRITE ESTA FROM LIGNES-HEADER
+           WRITE ESTA FROM LIGNE-VIDE
+           .
+
+       ECRIRE-INDIVIDUS.
+           MOVE NOM-PRE-A3 TO LC-NOM
+           MOVE PRIME-A3 TO LC-MONT
+           WRITE ESTA FROM LIGNES-CONTENU
+           .
+
+       ECRIRE-HEADER-INDIVIDUS.
+           MOVE 'CLIENT' TO LC-NOM
+           MOVE 'PRIME' TO LC-LAB2
+           WRITE ESTA FROM LIGNES-CONTENU
+           MOVE ALL '-' TO LC-NOM
+           MOVE ALL '-' TO LC-LAB2
+           WRITE ESTA FROM LIGNES-CONTENU
+           .
+
+       ECRIRE-ESTA-TOTAL.
+           WRITE ESTA FROM LIGNE-VIDE
+           WRITE ESTA FROM LIGNES-TOTAUX
+           .
+
+       ECRIRE-TOTAL-TYPE.
+           MOVE 'TOTAL DU TYPE' TO LT-LABEL
+           MOVE CTRL-TYPE TO LT-VALUE
+           MOVE TOTAL-TYPE TO LT-MONT
+           WRITE ESTA FROM LIGNE-MONT-DASH
+           PERFORM ECRIRE-ESTA-TOTAL
+           .
+
+       ECRIRE-TOTAL-DEPT.
+           MOVE 'TOTAL DU DEPARTEMENT' TO LT-LABEL
+           MOVE CTRL-DEPT TO LT-VALUE
+           MOVE TOTAL-DEPT TO LT-MONT
+           WRITE ESTA FROM LIGNE-MONT-DASH
+           PERFORM ECRIRE-ESTA-TOTAL
+           WRITE ESTA FROM LIGNE-VIDE
+           WRITE ESTA FROM LIGNE-DASH
+           WRITE ESTA FROM LIGNE-VIDE
+           .
+
+       ECRIRE-TOTAL-GENE.
+           MOVE 'TOTAL GENERAL' TO LT-LABEL
+           MOVE SPACES TO LT-VALUE
+           MOVE TOTAL-GENE TO LT-MONT
+           WRITE ESTA FROM LIGNE-DASH
+           WRITE ESTA FROM LIGNES-TOTAUX
+           .

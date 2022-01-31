@@ -1,0 +1,30 @@
+//API1EX   JOB 'SDJ CHARGT BASE DL1',MSGCLASS=H,MSGLEVEL=(1,1),
+//            NOTIFY=&SYSUID,TIME=(0,2)
+//*
+//*======================================================*
+//*           CHARGEMENT DE LA BASE DE DONNEES           *
+//*======================================================*
+//*
+//PROCV8 JCLLIB ORDER=IMS810.PROCLIB
+//*
+//*CREAT  EXEC DLIBATCH,MBR=IMSBTP55,PSB=PBM010A,SOUT=*,
+//*------- PBM010A : 1 PCB AVEC  PROCOPT = A  -------------*
+//*------- PBM010F : 2 PCB AVEC  PROCOPT = A  (POUR TP4) --*
+//*------- ===============================================-*
+//*CREAT  EXEC DLIBATCH,MBR=EX31,PSB=PSB010A,SOUT=*,
+//CREAT  EXEC DLIBATCH,MBR=EX31,PSB=PSB010B,SOUT=*,
+//       DBRC=N,IRLM=N,RGN=2M
+//G.STEPLIB   DD
+//            DD
+//            DD  DSN=API1.IMS.LOAD,DISP=SHR
+//G.IEFRDER  DD DUMMY
+//G.SYSUDUMP DD DUMMY
+//G.DFSVSAMP  DD  *
+4096,8
+/*
+//G.IMS      DD DSN=API1.IMS.PSBLIB,DISP=SHR
+//           DD DSN=API1.IMS.DBDLIB,DISP=SHR
+//DBM010A  DD  DSN=API1.IMS.DBM010A,DISP=SHR
+//PRINTDD  DD  SYSOUT=*
+//SYSIN    DD  DUMMY
+//SYSOUT   DD  SYSOUT=H

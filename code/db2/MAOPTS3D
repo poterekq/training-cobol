@@ -1,0 +1,406 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:       MAOPTS3D - ACCESSEUR DE TABLES DB2
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS3D.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 19 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *NOMS DES FICHIERS ---------------------------------------------
+
+       01 WS-NOMS.
+          02 NOM-ASS           PIC X(8) VALUE 'ASSURES '.
+          02 NOM-MVT           PIC X(8) VALUE 'MVT     '.
+
+       01 TMP-NOM-FICHIER      PIC X(8) VALUE LOW-VALUE.
+
+      *DECLARATION DES TABLES ----------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE TASSURE
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE TMVTS
+           END-EXEC
+
+      *STRUCTURES POUR SQLCA -----------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *DECLARATION DES CURSEURS --------------------------------------
+
+           EXEC SQL
+              DECLARE C_TMVTS_1 CURSOR FOR
+                 SELECT MAT                        ,
+                        NOMPRE                     ,
+                        RUE                        ,
+                        CP                         ,
+                        VILLE                      ,
+                        TYPEV                      ,
+                        PRIME                      ,
+                        BM                         ,
+                        TAUX                       ,
+                        TYPEM
+                 FROM API1.TMVTS
+              FOR FETCH ONLY
+           END-EXEC
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-PARMS.
+          02 USERINPUT.
+             03 ID-ACS         PIC X.
+             03 NOM-FICHIER    PIC X(8).
+             03 CODE-FONCTION  PIC 99.
+          02 ENREGISTREMENT.
+             03 MAT            PIC X(6).
+             03 NOMPRE         PIC X(20).
+             03 RUE            PIC X(18).
+             03 CP             PIC X(5).
+             03 VILLE          PIC X(12).
+             03 TYPEV          PIC X.
+             03 PRIME          PIC 9(4)V99.
+             03 BM             PIC X.
+             03 TAUX           PIC 99.
+             03 FILLER         PIC X.
+             03 TYPEM          PIC X.
+             03 FILLER         PIC X(7).
+          02 CODE-RETOUR       PIC 99.
+      *       000 OPERATION COMPLETED SUCCESSFULLY
+      *      +100 END OF FILE OR RECORD NOT FOUND
+      *      -501 THE CURSOR IN A FETCH OR CLOSE STATEMENT IS NOT OPEN
+      *      -803 NO TWO ROWS CAN CONTAIN DUPLICATE PK OR INDEXES
+             88 DB2-N000       VALUE 00.
+             88 DB2-P100-01    VALUE 01.
+             88 DB2-P100-04    VALUE 04.
+             88 DB2-M501       VALUE 03.
+             88 DB2-M803       VALUE 02.
+          02 FILLER            PIC X(128).
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      */////////////////////////////////
+       PROCEDURE DIVISION USING L-PARMS.
+      */////////////////////////////////
+
+           PERFORM 0000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 0000S - OPERATIONS DU SOUS-PROGRAMME
+      *------------------------------------------
+
+       0000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 0100-EVALUER-NOM-FICHIER
+           PERFORM 0200-TRAITER-FICHIERS
+           .
+
+
+       0100-EVALUER-NOM-FICHIER.
+           EVALUATE NOM-FICHIER
+              WHEN NOM-ASS MOVE NOM-ASS TO TMP-NOM-FICHIER
+              WHEN NOM-MVT MOVE NOM-MVT TO TMP-NOM-FICHIER
+              WHEN OTHER PERFORM 0A00-NOM-FICHIER-INVALIDE
+           END-EVALUATE
+           .
+
+       0200-TRAITER-FICHIERS.
+           SET DB2-N000 TO TRUE
+           EVALUATE NOM-FICHIER
+              WHEN NOM-ASS PERFORM 0210-TRAITER-ASS
+              WHEN NOM-MVT PERFORM 0220-TRAITER-MVT
+              WHEN OTHER PERFORM 0A00-NOM-FICHIER-INVALIDE
+           END-EVALUATE
+           .
+
+      *PARAGRAPHES DE TRAITEMENT POUR LA TABLE TASSURE
+
+       0210-TRAITER-ASS.
+      D    DISPLAY 'D ÝMAOPTS3D¨ OPERATION SUR ASS: ' CODE-FONCTION
+           PERFORM 021X-ENRG-VERS-TASSURE
+           EVALUATE CODE-FONCTION
+              WHEN 07
+                 PERFORM 0217-REWRITE-ASS
+                 PERFORM CDB2-MODIFIER-INEXISTANT
+              WHEN 08
+                 PERFORM 0218-DELETE-ASS
+                 PERFORM CDB2-MODIFIER-INEXISTANT
+              WHEN 09
+      D    DISPLAY 'D ÝMAOPTS3D¨ ECRITURE...'
+                 PERFORM 0219-WRITE-ASS
+                 PERFORM CDB2-CREER-EXISTANT
+      D    DISPLAY 'D ÝMAOPTS3D¨ CODE-RETOUR: ' CODE-RETOUR
+              WHEN OTHER
+                 PERFORM 0B00-CODE-FONCTION-INVALIDE
+                 DISPLAY '  VALEURS POSSIBLES: 07 A 09.'
+           END-EVALUATE
+           .
+
+
+       0217-REWRITE-ASS.
+           EXEC SQL
+              UPDATE API1.TASSURE
+                 SET NOMPRE = :DCLTASSURE.NOMPRE   ,
+                     RUE    = :DCLTASSURE.RUE      ,
+                     CP     = :DCLTASSURE.CP       ,
+                     VILLE  = :DCLTASSURE.VILLE    ,
+                     TYPEV  = :DCLTASSURE.TYPEV    ,
+                     PRIME  = :DCLTASSURE.PRIME    ,
+                     BM     = :DCLTASSURE.BM       ,
+                     TAUX   = :DCLTASSURE.TAUX
+                 WHERE MAT  = :DCLTASSURE.MAT
+           END-EXEC
+           .
+
+
+       0218-DELETE-ASS.
+           EXEC SQL
+              DELETE FROM API1.TASSURE
+                 WHERE MAT = :DCLTASSURE.MAT
+           END-EXEC
+           .
+
+
+       0219-WRITE-ASS.
+           EXEC SQL
+              INSERT INTO API1.TASSURE
+                 VALUES (
+                            :DCLTASSURE.MAT        ,
+                            :DCLTASSURE.NOMPRE     ,
+                            :DCLTASSURE.RUE        ,
+                            :DCLTASSURE.CP         ,
+                            :DCLTASSURE.VILLE      ,
+                            :DCLTASSURE.TYPEV      ,
+                            :DCLTASSURE.PRIME      ,
+                            :DCLTASSURE.BM         ,
+                            :DCLTASSURE.TAUX
+                        )
+           END-EXEC
+           .
+
+
+       021X-ENRG-VERS-TASSURE.
+           MOVE MAT    OF ENREGISTREMENT TO MAT    OF DCLTASSURE
+           MOVE NOMPRE OF ENREGISTREMENT TO NOMPRE OF DCLTASSURE
+           MOVE RUE    OF ENREGISTREMENT TO RUE    OF DCLTASSURE
+           MOVE CP     OF ENREGISTREMENT TO CP     OF DCLTASSURE
+           MOVE VILLE  OF ENREGISTREMENT TO VILLE  OF DCLTASSURE
+           MOVE TYPEV  OF ENREGISTREMENT TO TYPEV  OF DCLTASSURE
+           MOVE PRIME  OF ENREGISTREMENT TO PRIME  OF DCLTASSURE
+           MOVE BM     OF ENREGISTREMENT TO BM     OF DCLTASSURE
+           MOVE TAUX   OF ENREGISTREMENT TO TAUX   OF DCLTASSURE
+           .
+
+
+      *PARAGRAPHES DE TRAITEMENT POUR LE FICHIER ESDS MVT
+
+
+       0220-TRAITER-MVT.
+           EVALUATE CODE-FONCTION
+              WHEN 01
+                 PERFORM 0221-OPEN-INPUT-MVT
+                 PERFORM CDB2-ERREUR-CURSEUR
+              WHEN 05
+                 PERFORM 0225-CLOSE-MVT
+                 PERFORM CDB2-ERREUR-CURSEUR
+              WHEN 11
+                 PERFORM 022B-READNEXT-MVT
+                 PERFORM CDB2-ERREUR-CURSEUR
+                 PERFORM CDB2-FIN-FICHIER
+                 IF SQLCODE = ZEROS
+                    PERFORM 022X-TMVTS-VERS-ENRG
+                 END-IF
+              WHEN OTHER
+                 PERFORM 0B00-CODE-FONCTION-INVALIDE
+                 DISPLAY '  VALEURS POSSIBLES: 01, 05, 11.'
+           END-EVALUATE
+           .
+
+
+       0221-OPEN-INPUT-MVT.
+           EXEC SQL
+              OPEN C_TMVTS_1
+           END-EXEC
+           .
+
+
+       0225-CLOSE-MVT.
+           EXEC SQL
+              CLOSE C_TMVTS_1
+           END-EXEC
+           .
+
+
+       022B-READNEXT-MVT.
+           EXEC SQL
+              FETCH C_TMVTS_1
+                 INTO :DCLTMVTS.MAT                ,
+                      :DCLTMVTS.NOMPRE             ,
+                      :DCLTMVTS.RUE                ,
+                      :DCLTMVTS.CP                 ,
+                      :DCLTMVTS.VILLE              ,
+                      :DCLTMVTS.TYPEV              ,
+                      :DCLTMVTS.PRIME              ,
+                      :DCLTMVTS.BM                 ,
+                      :DCLTMVTS.TAUX               ,
+                      :DCLTMVTS.TYPEM
+           END-EXEC
+           .
+
+
+       022X-TMVTS-VERS-ENRG.
+           MOVE MAT    OF DCLTMVTS TO MAT    OF ENREGISTREMENT
+           MOVE NOMPRE OF DCLTMVTS TO NOMPRE OF ENREGISTREMENT
+           MOVE RUE    OF DCLTMVTS TO RUE    OF ENREGISTREMENT
+           MOVE CP     OF DCLTMVTS TO CP     OF ENREGISTREMENT
+           MOVE VILLE  OF DCLTMVTS TO VILLE  OF ENREGISTREMENT
+           MOVE TYPEV  OF DCLTMVTS TO TYPEV  OF ENREGISTREMENT
+           MOVE PRIME  OF DCLTMVTS TO PRIME  OF ENREGISTREMENT
+           MOVE BM     OF DCLTMVTS TO BM     OF ENREGISTREMENT
+           MOVE TAUX   OF DCLTMVTS TO TAUX   OF ENREGISTREMENT
+           MOVE TYPEM  OF DCLTMVTS TO TYPEM  OF ENREGISTREMENT
+           .
+
+      *GESTION DES PARAMETRES INVALIDES
+
+       0A00-NOM-FICHIER-INVALIDE.
+           DISPLAY 'ÝMAOPTS3D¨ NOM-FICHIER INVALIDE!'
+           DISPLAY '  VALEUR ACTUELLE: ' NOM-FICHIER '.'
+           MOVE 16 TO RETURN-CODE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+       0B00-CODE-FONCTION-INVALIDE.
+           DISPLAY 'ÝMAOPTS3D¨ CODE-FONCTION INVALIDE!'
+           DISPLAY '  VALEUR ACTUELLE: ' CODE-FONCTION '.'
+           MOVE 16 TO RETURN-CODE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      *BLOCS CDB2 - GESTION DES CODES DB2
+      *----------------------------------
+
+       CDB2-FIN-FICHIER.
+           IF SQLCODE = +100
+              SET DB2-P100-04 TO TRUE
+           END-IF
+           .
+
+
+       CDB2-MODIFIER-INEXISTANT.
+           IF SQLERRD(3) = ZERO
+              SET DB2-P100-01 TO TRUE
+           END-IF
+           .
+
+
+       CDB2-ERREUR-CURSEUR.
+           IF SQLCODE = -501
+              SET DB2-M501 TO TRUE
+           END-IF
+           .
+
+
+       CDB2-CREER-EXISTANT.
+           IF SQLCODE = -803
+              SET DB2-M803 TO TRUE
+           END-IF
+           .
+
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           IF SQLCODE = -803
+              SET DB2-M803 TO TRUE
+           ELSE
+              DISPLAY 'ERREUR DB2'
+              DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+              CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+              PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+                 DISPLAY ERR-TXT (I)
+              END-PERFORM
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

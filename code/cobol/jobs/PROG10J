@@ -1,0 +1,9 @@
+//API1P10  JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*                                                                     00020000
+//* EXECUTION DU PROGRAMME DE LECTURE D'UN KSDS AVEC AIX                00030000
+//*                                                                     00040000
+//READSDS  EXEC PGM=PROG10                                              00050000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00051000
+//SYSOUT   DD SYSOUT=H                                                  00060000
+//DDFIC1   DD DSN=API1.TEST.KSDS,DISP=OLD                               00070000
+//DDFIC11  DD DSN=API1.TEST.KSDS.AIX.PATH,DISP=OLD                      00080000

@@ -1,0 +1,117 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TPPGM13.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 05 JANVIER 2022.
+
+
+       ENVIRONMENT DIVISION.
+
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+      *STRUCTURE DE LA TABLE SQLCA
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC.
+
+      *STRUCTURE DE LA TABLE EMPLOYE
+           EXEC SQL
+             INCLUDE EMPLOYE
+           END-EXEC.
+
+      *VARIABLES INDICATEURS POUR EMPLOYE
+       01 IND-COM PIC S9(4) COMP.
+
+      *VARIABLES UTILISEES PAR DSNTIAR
+       01 ERR-MSG.
+         02 ERR-LONG PIC S9(4) COMP VALUE +720.
+         02 ERR-TXT  PIC X(75) OCCURS 10 TIMES.
+
+       01 ERR-TXT-LONG PIC 99 VALUE 72.
+
+      *VARIABLES UTILITAIRES
+       01 I PIC 99.
+
+
+       PROCEDURE DIVISION.
+           PERFORM RACINE
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+      * PARAGRAPHES UTILITAIRES
+
+       PARAG-ERR.
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           STOP RUN.
+
+      *CORPS D'EXECUTION DU PROGRAMME
+
+       RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM Q3
+           .
+
+       Q3.
+           PERFORM Q3-DECLARER-CURSEUR
+           PERFORM OUVRIR-CURSEUR
+           PERFORM Q3-ITERER-BD
+           PERFORM FERMER-CURSEUR
+           .
+
+       Q3-DECLARER-CURSEUR.
+           EXEC SQL
+             DECLARE C_EMPLOYE CURSOR FOR
+               SELECT MAT, NOM, SAL,
+                 (CASE NOD
+                  WHEN 'P02' THEN 'COMMER'
+                  ELSE NOD
+                  END)
+               FROM EMPLOYE
+               WHERE NOD = 'P02'
+             FOR FETCH ONLY
+           END-EXEC
+           .
+
+       Q3-ITERER-BD.
+           PERFORM Q3-RECUPERER-LIGNE
+           PERFORM UNTIL SQLCODE NOT = ZERO
+             PERFORM Q3-AFFICHER-LIGNE
+             PERFORM Q3-RECUPERER-LIGNE
+           END-PERFORM
+           .
+
+       Q3-RECUPERER-LIGNE.
+           EXEC SQL
+             FETCH C_EMPLOYE
+             INTO :MAT, :NOM, :SAL, :NOD
+           END-EXEC
+           .
+
+       Q3-AFFICHER-LIGNE.
+           DISPLAY MAT ' ' NOM ' ' SAL ' ' NOD
+           .
+
+      *GESTION DES CURSEURS
+
+       OUVRIR-CURSEUR.
+           EXEC SQL
+             OPEN C_EMPLOYE
+           END-EXEC
+           .
+
+       FERMER-CURSEUR.
+           EXEC SQL
+             CLOSE C_EMPLOYE
+           END-EXEC
+           .

@@ -1,0 +1,65 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. MVTLABEL.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-370.
+       OBJECT-COMPUTER. IBM-370.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       LINKAGE SECTION.
+       77 CODE-ERREUR  PIC XX.
+       77 LABEL-ERREUR PIC X(35).
+       77 TYPE-ERREUR  PIC X(4).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING CODE-ERREUR LABEL-ERREUR TYPE-ERREUR.
+           EVALUATE CODE-ERREUR
+             WHEN '01'
+               MOVE 'MATRICULE NON NUMERIQUE' TO LABEL-ERREUR
+               MOVE '1' TO TYPE-ERREUR
+             WHEN '02'
+               MOVE 'CODE MOUVEMENT INVALIDE' TO LABEL-ERREUR
+               MOVE 'C' TO TYPE-ERREUR
+             WHEN '03'
+               MOVE 'SIGNE DIFFERENT DE + OU -' TO LABEL-ERREUR
+               MOVE '1' TO TYPE-ERREUR
+             WHEN '04'
+               MOVE 'TAUX NON NUMERIQUE' TO LABEL-ERREUR
+               MOVE '1' TO TYPE-ERREUR
+             WHEN '05'
+               MOVE 'LE NOM N''EST PAS RENSEIGNE' TO LABEL-ERREUR
+               MOVE '2' TO TYPE-ERREUR
+             WHEN '06'
+               MOVE 'AU MOINS UNE ZONE DOIT ETRE SAISIE' TO LABEL-ERREUR
+               MOVE '3' TO TYPE-ERREUR
+             WHEN '07'
+               MOVE 'CODE POSTAL INVALIDE' TO LABEL-ERREUR
+               MOVE '3' TO TYPE-ERREUR
+             WHEN '08'
+               MOVE 'TYPE DE PRIME INVALIDE' TO LABEL-ERREUR
+               MOVE '4' TO TYPE-ERREUR
+             WHEN '09'
+               MOVE 'PRIME NON NUMERIQUE' TO LABEL-ERREUR
+               MOVE '4' TO TYPE-ERREUR
+             WHEN OTHER
+               MOVE 'CODE D''ERREUR INCONNU' TO LABEL-ERREUR
+               MOVE 'I' TO TYPE-ERREUR
+           END-EVALUATE
+           GOBACK.

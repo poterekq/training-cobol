@@ -1,0 +1,110 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ALGO2.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 2 DECEMBRE 2021
+
+      * ----------------------------------------------
+      * ALGO 2 - EXTRACTION ET EXPLORATION D'UNE TABLE
+      * ----------------------------------------------
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT STOCK ASSIGN STOCK
+             FILE STATUS WS-STO.
+           SELECT CATEG ASSIGN CATEG
+             FILE STATUS WS-CAT.
+           SELECT EXTRACT ASSIGN EXTRACT
+             FILE STATUS WS-EXT.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD STOCK RECORDING F.
+       01 ESTOCK.
+         05 FILLER             PIC X(8).
+         05 ST-NOM-PRODUIT     PIC X(22).
+         05 ST-NUM-PRODUIT     PIC X(4).
+         05 ST-CATEGORIE       PIC XX.
+         05 FILLER             PIC X(44).
+       FD CATEG RECORDING F.
+       01 ECATEG.
+         05 FILLER             PIC X(8).
+         05 CA-CATEGORIE       PIC XX.
+         05 FILLER             PIC X(70).
+       FD EXTRACT RECORDING F.
+       01 EEXTRACT.
+         05 EX-NOM-PRODUIT     PIC X(22).
+         05 EX-NUM-PRODUIT     PIC X(4).
+         05 EX-CATEGORIE       PIC XX.
+         05 FILLER             PIC X(52).
+
+       WORKING-STORAGE SECTION.
+       77 WS-STO     PIC XX.
+       77 WS-CAT     PIC XX.
+       77 WS-EXT     PIC XX.
+       77 TMP-CAT    PIC 99.
+
+       01 TABLE-VALIDE.
+         05 VALUE '00000000000000000000' PIC X(20).
+       01 REDEFINES TABLE-VALIDE.
+         05 T-VALIDE PIC X OCCURS 20.
+
+       PROCEDURE DIVISION.
+           OPEN INPUT STOCK
+           PERFORM TEST-STAT-STO
+           OPEN INPUT CATEG
+           PERFORM TEST-STAT-CAT
+           OPEN OUTPUT EXTRACT
+           PERFORM TEST-STAT-EXT
+
+           READ CATEG
+           PERFORM UNTIL WS-CAT = '10'
+             PERFORM TEST-STAT-CAT
+             MOVE CA-CATEGORIE TO TMP-CAT
+             IF TMP-CAT > 20
+               DISPLAY 'CATEGORIE INVALIDE ' TMP-CAT
+               STOP RUN
+             END-IF
+             MOVE 1 TO T-VALIDE(TMP-CAT)
+             READ CATEG
+           END-PERFORM
+           CLOSE CATEG
+           PERFORM TEST-STAT-CAT
+
+           READ STOCK
+           PERFORM UNTIL WS-STO = '10'
+             PERFORM TEST-STAT-STO
+             MOVE ST-CATEGORIE TO TMP-CAT
+             IF T-VALIDE(TMP-CAT) = '1'
+               MOVE ST-NOM-PRODUIT TO EX-NOM-PRODUIT
+               MOVE ST-NUM-PRODUIT TO EX-NUM-PRODUIT
+               MOVE ST-CATEGORIE   TO EX-CATEGORIE
+               WRITE EEXTRACT
+             END-IF
+             READ STOCK
+           END-PERFORM
+
+           CLOSE STOCK
+           PERFORM TEST-STAT-STO
+           CLOSE EXTRACT
+           PERFORM TEST-STAT-EXT
+           STOP RUN.
+
+       TEST-STAT-STO.
+           IF WS-STO NOT = '00'
+             DISPLAY 'ERREUR FICHIER STOCK - ' WS-STO
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+       TEST-STAT-CAT.
+           IF WS-CAT NOT = '00'
+             DISPLAY 'ERREUR FICHIER CATEGORIE - ' WS-CAT
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+       TEST-STAT-EXT.
+           IF WS-EXT NOT = '00'
+             DISPLAY 'ERREUR FICHIER EXTRACT - ' WS-EXT
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.

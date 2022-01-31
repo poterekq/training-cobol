@@ -1,0 +1,357 @@
+//APIXMJ30 JOB  CLASS=A,MSGCLASS=H,TIME=(,10),NOTIFY=&SYSUID
+//*
+//*           +    +           +        /88888\    +      ,+8888\
+//*          /8\  /8\         /8\         888     /8\     8888
+//*         /888BDY88\       /\88\        888    /\88\    `Y88B
+//*        / \88/ \888\     /  \88\       888   /  \88\    `Y88B,
+//*       /   \/   \888\   /____\88\  ||  88P  /____\88\     8888
+//*      /          \888\ /      \88\ \\__8O' /      \88\ \8888P'
+//*
+//*|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+//*                                                                    |
+//* ------------------- PROJET COBOL - VSAM - DB2 -------------------- |
+//*                                                                    |
+//* AUTEUR   : QUENTIN POTEREK                                         |
+//* ----------                                                         |
+//*                                                                    |
+//* DATE     : 20 JANVIER 2022                                         |
+//* ----------                                                         |
+//*                                                                    |
+//* FONCTION : A COMPLETER.                                            |
+//* ----------                                                         |
+//*                                                                    |
+//*|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+//*
+//**********************************************************************
+//*                                                                    *
+//*   DEFINITION DES BIBLIOTHEQUES                                     *
+//*                                                                    *
+//**********************************************************************
+//*
+//PROCLIB  JCLLIB ORDER=SDJ.FORM.PROCLIB
+//*
+//**********************************************************************
+//*                                                                    *
+//*   DEFINITION DES PARAMETRES                                        *
+//*                                                                    *
+//**********************************************************************
+//*
+//         SET SYSUID=API1
+//*
+//**********************************************************************
+//*                                                                    *
+//*   PREPARATION DES FICHIERS VSAM                                    *
+//*                                                                    *
+//**********************************************************************
+//*
+//* -------------------------------------------------------------------
+//* STEP0 :
+//* CREER LE FICHIER API1.ACTIF.KSDSMESS (KSDS)
+//* -------------------------------------------------------------------
+//*
+//S0CRKSDS EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//FIMESS   DD   DSN=API0.SOURCE.COPY(MESS),DISP=SHR
+//SYSIN    DD   *
+ DELETE API1.ACTIF.KSDSMESS
+ DEF CL (NAME(API1.ACTIF.KSDSMESS) IXD -
+         CISZ(4096) KEYS (3 0) TRK(1 2) FSPC(10 30) RECSZ(80 80))
+ REPRO IFILE(FIMESS) ODS(API1.ACTIF.KSDSMESS)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP1 :
+//* TRIER LE FICHIER API1.COB.ASSURES (SEQ)
+//* -------------------------------------------------------------------
+//*
+//S1SOASSU EXEC PGM=SORT
+//SORTIN   DD   DSN=API1.COB.ASSURES,DISP=SHR
+//SORTOUT  DD   DSN=&&ASSURES2,DISP=(NEW,PASS),
+// SPACE=(TRK,(1,1)),LRECL=80,BLKSIZE=800,RECFM=FB
+//SYSOUT   DD   SYSOUT=H
+//SYSIN    DD   *
+ SORT FIELDS=(1,6,BI,A)        TRI SUR LE MATRICULE DES ASSURES
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP2 :
+//* CREER L'ENVELOPPE KSDS API1.ACTIF.ASSURES3 (KSDS)
+//* ALIMENTER ASSURES3 (KSDS) AVEC LE FICHIER TRIE ASSURES (SEQ)
+//* -------------------------------------------------------------------
+//*
+//S2CRKSDS EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//ASSURES2 DD   DSN=&&ASSURES2,DISP=(OLD,DELETE)
+//SYSIN    DD   *
+ DELETE API1.ACTIF.ASSURES3
+ DEF CL (NAME(API1.ACTIF.ASSURES3) IXD -
+         CISZ(4096) KEYS (6 0) TRK(1 2) FSPC(10 30) RECSZ(80 80))
+ REPRO IFILE(ASSURES2) ODS(API1.ACTIF.ASSURES3)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP3 :
+//* TRIER LE FICHIER API1.COB.MVTPROJ (SEQ)
+//* -------------------------------------------------------------------
+//*
+//S3SOMVTP EXEC PGM=SORT
+//SORTIN   DD   DSN=API1.COB.MVTPROJ,DISP=SHR
+//SORTOUT  DD   DSN=&&FMVTSTE,DISP=(NEW,PASS),
+// SPACE=(TRK,(1,1)),LRECL=80,BLKSIZE=800,RECFM=FB
+//SYSOUT   DD   SYSOUT=H
+//SYSIN    DD   *
+ SORT FIELDS=(1,6,BI,A)        TRI SUR LE MATRICULE DE MVTPROJ
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP4 :
+//* CREER L'ENVELOPPE ESDS API1.ACTIF.FMVTSE (ESDS)
+//* ALIMENTER FMVTSE (ESDS) AVEC LE FICHIER TRIE FMVTSTE (SEQ)
+//* -------------------------------------------------------------------
+//*
+//S4CRESDS EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=H
+//FMVTSTE  DD   DSN=&&FMVTSTE,DISP=(OLD,DELETE)
+//SYSIN    DD   *
+ DELETE API1.ACTIF.FMVTSE
+ DEF CL (NAME(API1.ACTIF.FMVTSE) NIXD -
+         CISZ(4096) TRK(1 2) RECSZ(80 80))
+ REPRO IFILE(FMVTSTE) ODS(API1.ACTIF.FMVTSE)
+/*
+//*
+//**********************************************************************
+//*                                                                    *
+//*   PREPARATION DES TABLES DB2                                       *
+//*                                                                    *
+//**********************************************************************
+//*
+//* -------------------------------------------------------------------
+//* STEP5 :
+//* CREER LA TABLE DB2 TASSURE
+//* -------------------------------------------------------------------
+//*
+//S5CRTASS EXEC PGM=IKJEFT01,COND=(4,LT)
+//SYSTSPRT DD   SYSOUT=H
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ RUN PROGRAM (DSNTEP2) PLAN (DSNTEP71) LIB ('DSN710.RUNLIB.LOAD')
+ END
+/*
+//SYSPRINT DD   SYSOUT=H
+//SYSIN    DD   *
+ DROP TABLE TASSURE;
+ COMMIT;
+ CREATE TABLE TASSURE
+ (
+     MAT    CHARACTER(6) NOT NULL,
+     NOMPRE CHARACTER(20),
+     RUE    CHARACTER(18),
+     CP     CHARACTER(5),
+     VILLE  CHARACTER(12),
+     TYPEV  CHARACTER(1),
+     PRIME  DECIMAL(6,2),
+     BM     CHARACTER(1),
+     TAUX   SMALLINT,
+     PRIMARY KEY (MAT)
+ );
+ COMMIT;
+ CREATE UNIQUE INDEX IXTASS ON TASSURE(MAT);
+ COMMIT;
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP6 :
+//* CREER LA TABLE DB2 TMVTS
+//* -------------------------------------------------------------------
+//*
+//S5CRTMVT EXEC PGM=IKJEFT01,COND=(4,LT)
+//SYSTSPRT DD   SYSOUT=H
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ RUN PROGRAM (DSNTEP2) PLAN (DSNTEP71) LIB ('DSN710.RUNLIB.LOAD')
+ END
+/*
+//SYSPRINT DD   SYSOUT=H
+//SYSIN    DD   *
+ DROP TABLE TMVTS;
+ COMMIT;
+ CREATE TABLE TMVTS
+ (
+     MAT    CHARACTER(6),
+     NOMPRE CHARACTER(20),
+     RUE    CHARACTER(18),
+     CP     CHARACTER(5),
+     VILLE  CHARACTER(12),
+     TYPEV  CHARACTER(1),
+     PRIME  DECIMAL(6,2),
+     BM     CHARACTER(1),
+     TAUX   SMALLINT,
+     TYPEM  CHARACTER(1)
+ );
+ COMMIT;
+/*
+//*
+//**********************************************************************
+//*                                                                    *
+//*   PRE-COMPILATION, COMPILATION ET BIND                             *
+//*                                                                    *
+//**********************************************************************
+//*
+//* -------------------------------------------------------------------
+//* STEP7 :
+//* COMPILER LE PROGRAMME MAOPTS3V
+//* -------------------------------------------------------------------
+//*
+//S7PCPS3V EXEC IGYWCL,PARM.COBOL=(ADV,OBJECT,LIB,TEST,APOST)
+//COBOL.SYSIN  DD DISP=SHR,DSN=API1.SOURCE.DB2(MAOPTS3V)
+//COBOL.SYSLIB DD DISP=SHR,DSN=CEE.SCEESAMP
+//             DD DISP=SHR,DSN=API1.SOURCE.COBOL
+//             DD DISP=SHR,DSN=API0.SOURCE.COPY
+//LKED.SYSLMOD DD DSN=API1.COBOL.LOAD,DISP=(SHR,KEEP,KEEP)
+//LKED.SYSIN DD *
+ NAME MAOPTS3V(R)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP8 :
+//* COMPILER LE PROGRAMME MAOPTP32
+//* -------------------------------------------------------------------
+//*
+//S8PCPP31  EXEC IGYWCL,PARM.COBOL=(ADV,OBJECT,LIB,TEST,APOST)
+//COBOL.SYSIN  DD DISP=SHR,DSN=API1.SOURCE.DB2(MAOPTP32)
+//COBOL.SYSLIB DD DISP=SHR,DSN=CEE.SCEESAMP
+//             DD DISP=SHR,DSN=API1.SOURCE.COBOL
+//             DD DISP=SHR,DSN=API0.SOURCE.COPY
+//LKED.SYSLMOD DD DSN=API1.COBOL.LOAD,DISP=(SHR,KEEP,KEEP)
+//LKED.SYSIN DD *
+ NAME MAOPTP32(R)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP9 :
+//* PRE-COMPILER ET COMPILER MAOPTP3A
+//* -------------------------------------------------------------------
+//*
+//         SET NOMPGM=MAOPTP3A
+//S9PCPP3A EXEC COMPDB2
+//STEPCOB.SYSLIB   DD DSN=API0.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSLIB   DD DSN=API1.SOURCE.DCLGEN,DISP=SHR
+//                 DD DSN=API1.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSIN    DD DSN=API1.SOURCE.DB2(&NOMPGM),DISP=SHR
+//STEPDB2.DBRMLIB  DD DSN=API1.SOURCE.DBRMLIB(&NOMPGM),DISP=SHR
+//STEPLNK.SYSLMOD  DD DSN=API1.SOURCE.PGMLIB(&NOMPGM),DISP=SHR
+//*
+//* -------------------------------------------------------------------
+//* STEP10 :
+//* BIND DU PACKAGE POUR MAOPTP3A
+//* -------------------------------------------------------------------
+//*
+//SABPKP3A EXEC PGM=IKJEFT01,COND=(4,LT)
+//DBRMLIB  DD   DSN=API1.SOURCE.DBRMLIB,DISP=SHR
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=25000
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ BIND PACKAGE   (CMAJAS)    -
+      QUALIFIER (API1)      -
+      ACTION    (REPLACE)   -
+      MEMBER    (MAOPTP3A)  -
+      VALIDATE  (BIND)      -
+      ISOLATION (CS)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP11 :
+//* PRE-COMPILER ET COMPILER MAOPTS3D
+//* -------------------------------------------------------------------
+//*
+//         SET NOMPGM=MAOPTS3D
+//SBPCPP3A EXEC COMPDB2
+//STEPCOB.SYSLIB  DD DSN=API0.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSLIB  DD DSN=API1.SOURCE.DCLGEN,DISP=SHR
+//                DD DSN=API1.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSIN   DD DSN=API1.SOURCE.DB2(&NOMPGM),DISP=SHR
+//STEPDB2.DBRMLIB DD DSN=API1.SOURCE.DBRMLIB(&NOMPGM),DISP=SHR
+//STEPLNK.SYSLMOD DD DSN=API1.SOURCE.PGMLIB(&NOMPGM),DISP=SHR
+//*
+//* -------------------------------------------------------------------
+//* STEP12 :
+//* BIND DU PACKAGE POUR MAOPTS3D
+//* -------------------------------------------------------------------
+//*
+//SCBPKP3A EXEC PGM=IKJEFT01,COND=(4,LT)
+//DBRMLIB  DD   DSN=API1.SOURCE.DBRMLIB,DISP=SHR
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=25000
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ BIND PACKAGE   (CMAJAS)    -
+      QUALIFIER (API1)      -
+      ACTION    (REPLACE)   -
+      MEMBER    (MAOPTS3D)  -
+      VALIDATE  (BIND)      -
+      ISOLATION (CS)
+/*
+//*
+//* -------------------------------------------------------------------
+//* STEP13 :
+//* BIND DU PLAN
+//* -------------------------------------------------------------------
+//*
+//SDBPLJ30 EXEC PGM=IKJEFT01,COND=(4,LT)
+//DBRMLIB  DD   DSN=API1.SOURCE.DBRMLIB,DISP=SHR
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=25000
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ BIND PLAN      (MAJAS)    -
+      QUALIFIER (API1)     -
+      ACTION    (REPLACE)  -
+      PKLIST    (CMAJAS.*) -
+      VALIDATE  (BIND)     -
+      ISOLATION (CS)       -
+      ACQUIRE   (USE)      -
+      RELEASE   (COMMIT)   -
+      EXPLAIN   (NO)
+/*
+//*
+//**********************************************************************
+//*                                                                    *
+//*   EXECUTION DES PROGRAMMES                                         *
+//*                                                                    *
+//**********************************************************************
+//*
+//* -------------------------------------------------------------------
+//* STEP14 :
+//* EXECUTER MAOPTP3A - ALIMENTER LES TABLES DB2
+//* -------------------------------------------------------------------
+//*
+//SECPLP3A EXEC PGM=IKJEFT01,COND=(4,LT)
+//STEPLIB  DD   DSN=API1.SOURCE.PGMLIB,DISP=SHR
+//         DD   DSN=API1.COBOL.LOAD,DISP=SHR
+//SYSOUT   DD   SYSOUT=*,OUTLIM=1000
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=2500
+//SYSTSIN  DD   *
+  DSN SYSTEM (DSN1)
+  RUN PROGRAM(MAOPTP3A) PLAN (MAJAS)
+/*
+//MVT      DD   DSN=API1.COB.FMVTST,DISP=SHR
+//ASS      DD   DSN=API1.COB.ASSURES,DISP=SHR
+//*
+//* -------------------------------------------------------------------
+//* STEP15 :
+//* EXECUTER MAOPTP31 - CHAINE DE TRAITEMENTS MAJAS
+//* -------------------------------------------------------------------
+//*
+//SFCPLP31 EXEC PGM=IKJEFT01,COND=(4,LT)
+//STEPLIB  DD   DSN=API1.COBOL.LOAD,DISP=SHR
+//         DD   DSN=API1.SOURCE.PGMLIB,DISP=SHR
+//SYSOUT   DD   SYSOUT=*,OUTLIM=1000
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=2500
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ RUN PROGRAM(MAOPTP32) PLAN (MAJAS)
+/*
+//ASS      DD   DSN=API1.ACTIF.ASSURES3,DISP=SHR
+//MVT      DD   DSN=API1.ACTIF.FMVTSE,DISP=SHR
+//SYSIN    DD   *
+D
+/*
+//

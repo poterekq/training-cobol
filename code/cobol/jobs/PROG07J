@@ -1,0 +1,10 @@
+//API1P7   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*                                                                     00020000
+//* EXECUTION DU PROGRAMME D'ECRITURE D'UN SDS                          00030000
+//*                                                                     00040000
+//WRITESDS  EXEC PGM=PROG07                                             00050000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00051000
+//SYSOUT   DD SYSOUT=H                                                  00060000
+//DDFIC1   DD DSN=API1.COB.ASSURES,DISP=OLD                             00070000
+//SYSOUT   DD SYSOUT=H                                                  00080000
+//DDFIC2   DD SYSOUT=H                                                  00090000

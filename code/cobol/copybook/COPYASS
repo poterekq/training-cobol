@@ -1,0 +1,11 @@
+         05 ASS-NUMERO PIC X(6).
+         05 ASS-NOM    PIC X(20).
+         05 ASS-RUE    PIC X(18).
+         05 ASS-CP.
+           10 ASS-CP-PREFIXE PIC XX.
+           10 FILLER         PIC XXX.
+         05 ASS-VILLE  PIC X(12).
+         05 ASS-VEHICULE PIC X(1).
+         05 ASS-PRIME  PIC S9(4)V99.
+         05 ASS-BONUS  PIC X(1).
+         05 ASS-TAUX   PIC V99.

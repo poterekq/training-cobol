@@ -1,0 +1,217 @@
+      CBL DYNAM
+
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTP10.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 13 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT ASS ASSIGN TO ASS
+             FILE STATUS FS-ASS.
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD ASS RECORDING F.
+       01 EASS.
+          02 MAT-A3            PIC X(6).
+          02 NOM-PRE-A3        PIC X(20).
+          02 RUE-A3            PIC X(18).
+          02 CP-A3             PIC X(5).
+          02 VILLE-A3          PIC X(12).
+          02 TYPE-V-A3         PIC X.
+          02 PRIME-A3          PIC 9(4)V99.
+          02 BM-A3             PIC X.
+          02 TAUX-A3           PIC 99.
+          02                   PIC X(9).
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *PROGRAMMES -----------------------------------------------------
+
+       01 SP.
+          02 SP1               PIC X(8) VALUE 'MAOPTS11'.
+
+      *STATUT DES FICHIERS --------------------------------------------
+
+       01 FS VALUE LOW-VALUE.
+          02 FS-ASS            PIC XX.
+
+      *ZONE D'ECHANGE -------------------------------------------------
+
+       01 WS-LIGNE.
+          02 MAT               PIC X(6).
+          02 NOMPRE            PIC X(20).
+          02 RUE               PIC X(18).
+          02 CP                PIC X(5).
+          02 VILLE             PIC X(12).
+          02 VEHICU            PIC X(1).
+          02 PRIME             PIC S9(4)V9(2) USAGE COMP-3.
+          02 BM                PIC X(1).
+          02 TAUX              PIC S9(4) USAGE COMP.
+
+
+       LINKAGE SECTION.
+      *----------------
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *///////////////////
+       PROCEDURE DIVISION.
+      *///////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           PERFORM 100-DEBUTER
+           PERFORM 200-REMPLIR-REJETS
+           .
+
+
+      *BLOCS 100S - DEBUTER LE PROGRAMME
+      *---------------------------------
+
+       100-DEBUTER.
+           PERFORM 110-OUVRIR-FICHIER
+           .
+
+
+       110-OUVRIR-FICHIER.
+           OPEN INPUT ASS
+           PERFORM TEST-FS-ASS
+           .
+
+
+      *BLOCS 200S - TRAITER LES DONNEES
+      *--------------------------------
+
+       200-REMPLIR-REJETS.
+           PERFORM 210-ITERER-ASS
+           .
+
+
+       210-ITERER-ASS.
+           READ ASS
+           PERFORM UNTIL FS-ASS = '10'
+              PERFORM TEST-FS-ASS
+              DISPLAY 'IT'
+              PERFORM 211-PREPARER-LIGNE
+              PERFORM 212-ECRIRE-LIGNE
+              READ ASS
+           END-PERFORM
+           .
+
+
+       211-PREPARER-LIGNE.
+           MOVE MAT-A3     TO MAT
+           MOVE NOM-PRE-A3 TO NOMPRE
+           MOVE RUE-A3     TO RUE
+           MOVE CP-A3      TO CP
+           MOVE VILLE-A3   TO VILLE
+           MOVE TYPE-V-A3  TO VEHICU
+           MOVE PRIME-A3   TO PRIME
+           MOVE BM-A3      TO BM
+           MOVE TAUX-A3    TO TAUX
+           .
+
+
+       212-ECRIRE-LIGNE.
+           CALL SP1 USING WS-LIGNE
+           .
+
+
+      *BLOCS 400S - TERMINER LE PROGRAMME
+      *----------------------------------
+
+       400-TERMINER.
+           PERFORM 410-FERMER-FICHIER
+           .
+
+
+       410-FERMER-FICHIER.
+           CLOSE ASS
+           PERFORM TEST-FS-ASS
+           .
+
+
+      *BLOCS FS - STATUT DES FICHIERS
+      *------------------------------
+
+       TEST-FS-ASS.
+      *TESTER L'INTEGRITE DU FICHIER ASS ET DE SES ENREGISTREMENTS
+           IF FS-ASS NOT = '00'
+              DISPLAY 'ERREUR FICHIER ASS: ' FS-ASS
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

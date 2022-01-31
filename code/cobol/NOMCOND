@@ -1,0 +1,28 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. NOMCOND.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 30 NOVEMBRE 2021
+
+      * ------------------------------------------
+      * PROGRAMME D'UTILISATION DES NOMS CONDITION
+      * ------------------------------------------
+
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77 MESS-ERREUR     PIC X(30).
+         88 ERR1 VALUE 'ERREUR 1'.
+         88 ERR2 VALUE 'ERREUR 2'.
+         88 ERR3 VALUE 'ERREUR 3'.
+         88 ERR4 VALUE 'ERREUR 4'.
+
+       PROCEDURE DIVISION.
+           SET ERR1 TO TRUE
+           DISPLAY MESS-ERREUR
+           SET ERR4 TO TRUE
+           DISPLAY MESS-ERREUR
+           SET ERR2 TO TRUE
+           DISPLAY MESS-ERREUR
+           SET ERR3 TO TRUE
+           DISPLAY MESS-ERREUR
+           STOP RUN
+           .

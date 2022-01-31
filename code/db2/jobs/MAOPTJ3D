@@ -1,0 +1,97 @@
+//APIXMJ3D JOB  CLASS=A,MSGCLASS=H,TIME=(,5),NOTIFY=&SYSUID
+//*
+//********************************
+//* DEFINITION DES BIBLIOTHEQUES *
+//********************************
+//*
+//PROCLIB  JCLLIB ORDER=SDJ.FORM.PROCLIB
+//*
+//*****************************
+//* DEFINITION DES PARAMETRES *
+//*****************************
+//*
+//         SET SYSUID=API1,
+//             NOMPGM=MAOPTS3D
+//*
+//**********************************************
+//* PRE-COMPILATION DU SOUS-PROGRAMME MAOPTS3D *
+//**********************************************
+//*
+//COMPS3D  EXEC COMPDB2
+//STEPCOB.SYSLIB  DD DSN=API0.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSLIB  DD DSN=API1.SOURCE.DCLGEN,DISP=SHR
+//                DD DSN=API1.SOURCE.COPY,DISP=SHR
+//STEPDB2.SYSIN   DD DSN=API1.SOURCE.DB2(&NOMPGM),DISP=SHR
+//STEPDB2.DBRMLIB DD DSN=API1.SOURCE.DBRMLIB(&NOMPGM),DISP=SHR
+//STEPLNK.SYSLMOD DD DSN=API1.SOURCE.PGMLIB(&NOMPGM),DISP=SHR
+//*
+//******************************************
+//* ETAPE DE BIND DU PACKAGE POUR MAOPTS3D *
+//******************************************
+//*
+//BINDPK01 EXEC PGM=IKJEFT01,COND=(4,LT)
+//DBRMLIB  DD   DSN=API1.SOURCE.DBRMLIB,DISP=SHR
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=25000
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ BIND PACKAGE   (CMAJAS)    -
+      QUALIFIER (API1)      -
+      ACTION    (REPLACE)   -
+      MEMBER    (MAOPTS3D)  -
+      VALIDATE  (BIND)      -
+      ISOLATION (CS)
+/*
+//*
+//*************************
+//* ETAPE DE BIND DU PLAN *
+//*************************
+//*
+//BINDPLAN EXEC PGM=IKJEFT01,COND=(4,LT)
+//DBRMLIB  DD   DSN=API1.SOURCE.DBRMLIB,DISP=SHR
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=25000
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ BIND PLAN      (MAJAS)    -
+      QUALIFIER (API1)     -
+      ACTION    (REPLACE)  -
+      PKLIST    (CMAJAS.*) -
+      VALIDATE  (BIND)     -
+      ISOLATION (CS)       -
+      ACQUIRE   (USE)      -
+      RELEASE   (COMMIT)   -
+      EXPLAIN   (NO)
+/*
+//*
+//***********************************************
+//* COMPILATION DU PROGRAMME PRINCIPAL MAOPTP31 *
+//***********************************************
+//*
+//COMPP31  EXEC IGYWCL,PARM.COBOL=(ADV,OBJECT,LIB,TEST,APOST)
+//COBOL.SYSIN  DD DISP=SHR,DSN=API1.SOURCE.DB2(MAOPTP31)
+//COBOL.SYSLIB DD DISP=SHR,DSN=CEE.SCEESAMP
+//             DD DISP=SHR,DSN=API1.SOURCE.COBOL
+//             DD DISP=SHR,DSN=API0.SOURCE.COPY
+//LKED.SYSLMOD DD DSN=API1.COBOL.LOAD,DISP=(SHR,KEEP,KEEP)
+//LKED.SYSIN DD *
+ NAME MAOPTP31(R)
+/*
+//*
+//***********************************
+//* EXECUTION DU PROGRAMME MAOPTP31 *
+//***********************************
+//*
+//STEPRUN  EXEC PGM=IKJEFT01,COND=(4,LT)
+//STEPLIB  DD   DSN=API1.COBOL.LOAD,DISP=SHR
+//         DD   DSN=API1.SOURCE.PGMLIB,DISP=SHR
+//SYSOUT   DD   SYSOUT=*,OUTLIM=1000
+//SYSTSPRT DD   SYSOUT=*,OUTLIM=2500
+//SYSTSIN  DD   *
+ DSN SYSTEM (DSN1)
+ RUN PROGRAM(MAOPTP31) PLAN (MAJAS)
+/*
+//ASS      DD   DSN=API1.ACTIF.ASSURES3,DISP=SHR
+//MVT      DD   DSN=API1.ACTIF.FMVTSE,DISP=SHR
+//SYSIN    DD   *
+D
+/*
+//

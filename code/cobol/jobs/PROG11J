@@ -1,0 +1,16 @@
+//API1P11  JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*                                                                     00020000
+//* PROGRAMME DE LECTURE D'UN KSDS EN ACCES DIRECT AVEC AIX             00030000
+//*                                                                     00040000
+//READSDS  EXEC PGM=PROG11                                              00050000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00051000
+//SYSOUT   DD SYSOUT=H                                                  00060000
+//DDFIC1   DD DSN=API1.TEST.KSDS,DISP=OLD                               00070000
+//DDFIC11  DD DSN=API1.TEST.KSDS.AIX.PATH,DISP=OLD                      00071000
+//SYSIN    DD *                                                         00080000
+MARIN BRIGITTE                                                          00090000
+BREJON PIERRE                                                           00100000
+DOGON AMAURY                                                            00110000
+                                                                        00120000
+/*                                                                      00130000
+//                                                                      00140000

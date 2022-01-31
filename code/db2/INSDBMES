@@ -1,0 +1,117 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID. INSDBMES.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 JANVIER  2022.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT MESS ASSIGN TO MESS
+             FILE STATUS FS-MESS.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+
+       FILE SECTION.
+
+       FD MESS RECORDING F.
+       01 EMESS.
+         02 F-NUM                PIC X(3).
+         02 F-MES                PIC X(60).
+         02 FILLER               PIC X(17).
+
+       WORKING-STORAGE SECTION.
+
+      *STRUCTURE DES TABLES DB2
+
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+             INCLUDE MESSDB2
+           END-EXEC
+
+      *STATUT DE FICHIER
+
+       01 FS-MESS               PIC XX.
+
+      *VARIABLES UTILISEES PAR DSNTIAR
+
+       01 ERR-MSG.
+         02 ERR-LONG PIC S9(4) COMP VALUE +720.
+         02 ERR-TXT  PIC X(75) OCCURS 10 TIMES.
+
+       01 ERR-TXT-LONG PIC S9(9) COMP VALUE 72.
+
+       01 I PIC 99.
+
+      *VARIABLES UTILISEES POUR MESSDB2
+
+       01 TABLE-PARMS.
+         02 T-NUM PIC X(3).
+         02 T-MES PIC X(60).
+
+       LINKAGE SECTION.
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+
+           OPEN INPUT MESS
+           PERFORM TEST-FS-MESS
+           READ MESS
+           PERFORM UNTIL FS-MESS = '10'
+             PERFORM TEST-FS-MESS
+      D      DISPLAY EMESS
+             MOVE F-NUM TO T-NUM
+             MOVE F-MES TO T-MES
+             EXEC SQL
+               INSERT INTO API1.MESSDB2
+                 VALUES (:T-NUM, :T-MES)
+             END-EXEC
+             READ MESS
+           END-PERFORM
+           .
+
+       PARAG-ERR.
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           GOBACK
+           .
+
+       TEST-FS-MESS.
+           IF FS-MESS NOT = '00'
+             DISPLAY 'ERREUR FICHIER MESS: ' FS-MESS
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .

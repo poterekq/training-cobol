@@ -1,0 +1,11 @@
+//API1UPD  JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)
+//*
+//*--------------------------------------------------------*
+//* IEBUPDTE POUR STOCKER DES MEMBRES DANS UN PDS          *
+//*--------------------------------------------------------*
+//*
+//STEP1    EXEC  PGM=IEBUPDTE,PARM=NEW
+//*SYSUT1   DD    DSN=API1.SOURCE.JCL,DISP=SHR
+//SYSUT2   DD    DSN=API1.SOURCE.JCL,DISP=SHR
+//SYSPRINT DD    SYSOUT=H
+//SYSIN    DD    DSN=API1.EXPORT,DISP=SHR

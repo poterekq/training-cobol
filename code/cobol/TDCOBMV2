@@ -1,0 +1,403 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. TDCOBMV2.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-370.
+      *SOURCE-COMPUTER. IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT MVT ASSIGN TO MVT
+             FILE STATUS WS-F-MVT.
+           SELECT STA ASSIGN TO STA
+             FILE STATUS WS-F-STA.
+           SELECT ERR ASSIGN TO ERR
+             FILE STATUS WS-F-ERR.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD MVT RECORDING F.
+       01 EMVT.
+         02 MVT-MATRICULE PIC 9(6).
+         02 MVT-CODE      PIC X.
+         02 MVT-CORPS-1.
+           03 MVT-SIGNE   PIC X.
+             88 MVT-SIGNE-OK VALUE '+', '-'.
+           03 MVT-TAUX    PIC 99.
+           03 FILLER      PIC X(70).
+         02 MVT-CORPS-2 REDEFINES MVT-CORPS-1.
+           03 MVT-NOM     PIC X(20).
+           03 FILLER      PIC X(53).
+         02 MVT-CORPS-3 REDEFINES MVT-CORPS-1.
+           03 MVT-ADRESSE PIC X(18).
+           03 MVT-CP      PIC 9(5).
+           03 MVT-VILLE   PIC X(12).
+           03 FILLER      PIC X(38).
+         02 MVT-CORPS-4 REDEFINES MVT-CORPS-1.
+           03 MVT-TYPE    PIC X.
+             88 MVT-TYPE-OK VALUE '0' THRU '9'.
+           03 MVT-PRIME   PIC 9(4)V99.
+           03 FILLER      PIC X(66).
+
+       FD STA RECORDING F.
+       01 ESTA PIC X(80).
+
+       FD ERR RECORDING F.
+       01 EERR PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      *STATUT DES FICHIERS
+       77 WS-F-MVT PIC XX.
+       77 WS-F-STA PIC XX.
+       77 WS-F-ERR PIC XX.
+
+      *SOUS-PROGRAMMES
+       77 SP1 PIC X(8) VALUE 'MVTLABEL'.
+
+      *VARIABLES DE CONTROLE POUR LES SOUS-PROGRAMMES
+       01 SP1-LABEL-ERREUR PIC X(35).
+
+      *COMPTEURS
+       01 CPT.
+         02 CPT-REC           PIC 9(5) VALUE 0.
+         02 CPT-REC-ERR       PIC 9(5) VALUE 0.
+         02 CPT-ERR           PIC 9(5) VALUE 0.
+         02 CPT-TYPE1         PIC 9(5) VALUE 0.
+         02 CPT-TYPE2         PIC 9(5) VALUE 0.
+         02 CPT-TYPE3         PIC 9(5) VALUE 0.
+         02 CPT-TYPE4         PIC 9(5) VALUE 0.
+         02 CPT-MAT-INVALIDE  PIC 9(5) VALUE 0.
+         02 CPT-CODE-INVALIDE PIC 9(5) VALUE 0.
+
+      *HORODATAGE
+       01 TAB-DOW.
+         02 VALUE '     LUNDI' PIC X(10).
+         02 VALUE '     MARDI' PIC X(10).
+         02 VALUE '  MERCREDI' PIC X(10).
+         02 VALUE '     JEUDI' PIC X(10).
+         02 VALUE '  VENDREDI' PIC X(10).
+         02 VALUE '    SAMEDI' PIC X(10).
+         02 VALUE '  DIMANCHE' PIC X(10).
+       01 REDEFINES TAB-DOW.
+         02 TAB-DOW-X PIC X(10) OCCURS 7.
+
+       77 WS-DOW-9 PIC 9.
+
+       01 DATE-HEURE.
+         02 DH-AA PIC X(4).
+         02 DH-MM PIC XX.
+         02 DH-JJ PIC XX.
+         02 DH-HH PIC XX.
+         02 DH-MI PIC XX.
+         02 DH-SS PIC XX.
+
+      *ELEMENTS DE FORMATAGE
+       77 LIGNE-VIDE PIC X(80) VALUE SPACES.
+
+      *EN-TETE DES FICHIERS
+       01 HEADER.
+         02 H-USER  PIC X(10).
+         02 FILLER  PIC X(46).
+         02 H-JOUR  PIC X(10).
+         02 FILLER  PIC X(4) VALUE ' LE '.
+         02 H-DATE  PIC X(10).
+
+       01 HEADER-HEURE.
+         02 FILLER  PIC X(72).
+         02 H-HEURE PIC X(8).
+
+       01 TITRE.
+         02 FILLER  PIC X(30).
+         02 T-LABEL PIC X(20).
+         02 FILLER  PIC X(30).
+
+      *CONTENU DU FICHIER ERR
+       01 ERR-LIGNE.
+         02 EL-ZONE1    PIC X(9).
+         02 FILLER      PIC X(4).
+         02 EL-ZONE2    PIC X(4).
+         02 FILLER      PIC X(4).
+         02 EL-ZONE3.
+           03 EL-ZONE31 PIC XX.
+           03 EL-ZONE32 PIC XXX VALUE ' - '.
+           03 EL-ZONE33 PIC X(39).
+         02 FILLER      PIC X(15).
+
+      *CONTENU DU FICHIER STA
+       01 STA-LIGNE.
+         02 SL-ZONE1 PIC X(45).
+         02 FILLER   PIC X(3) VALUE ' : '.
+         02 SL-ZONE2 PIC ZZBZZ9.
+         02 FILLER   PIC X(26).
+
+       LINKAGE SECTION.
+       01 PARM-FIELD.
+          05 PARM-LENGTH PIC S9(4) COMP.
+          05 PARM-USER   PIC X(5).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING PARM-FIELD.
+           PERFORM DEBUT-PGM
+
+           PERFORM RECUPERER-HORODATAGE
+           PERFORM ECRIRE-HEADER
+           PERFORM ECRIRE-TITRE
+           PERFORM ECRIRE-COLS-ERR
+
+           PERFORM TRAITEMENT-PGM UNTIL WS-F-MVT = '10'
+
+           PERFORM ECRIRE-STA
+
+           PERFORM FIN-PGM
+           GOBACK.
+
+      * -------------------------------------------------------------- *
+
+      *TEST D'INTEGRITE DES FICHIERS
+       TEST-STAT-MVT.
+           IF WS-F-MVT NOT = '00'
+             DISPLAY 'ERREUR FICHIER MVT: ' WS-F-MVT
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+       TEST-STAT-STA.
+           IF WS-F-STA NOT = '00'
+             DISPLAY 'ERREUR FICHIER STA: ' WS-F-STA
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+       TEST-STAT-ERR.
+           IF WS-F-ERR NOT = '00'
+             DISPLAY 'ERREUR FICHIER ERR: ' WS-F-ERR
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+      *DEBUT DU PROGRAMME
+       DEBUT-PGM.
+           OPEN INPUT MVT
+           PERFORM TEST-STAT-MVT
+           OPEN OUTPUT STA
+           PERFORM TEST-STAT-STA
+           OPEN OUTPUT ERR
+           PERFORM TEST-STAT-ERR
+
+           READ MVT
+           PERFORM TEST-STAT-MVT
+           .
+
+      *FIN DU PROGRAMME
+       FIN-PGM.
+           CLOSE MVT
+           PERFORM TEST-STAT-MVT
+           CLOSE STA
+           PERFORM TEST-STAT-STA
+           CLOSE ERR
+           PERFORM TEST-STAT-ERR
+           .
+
+      *TRAITEMENTS
+       TRAITEMENT-PGM.
+           PERFORM TEST-STAT-MVT
+           ADD 1 TO CPT-REC
+           MOVE 0 TO CPT-REC-ERR
+
+      D    DISPLAY EMVT
+
+           IF MVT-MATRICULE IS NOT NUMERIC
+             MOVE '01' TO EL-ZONE31
+             PERFORM ECRIRE-ERREUR
+             ADD 1 TO CPT-TYPE1, CPT-MAT-INVALIDE, CPT-REC-ERR
+           END-IF
+
+           EVALUATE TRUE
+      *      EVALUER L'INTEGRITE DES ENREGISTREMENTS EN CODE 1
+             WHEN MVT-CODE = '1'
+               IF NOT MVT-SIGNE-OK
+                 MOVE '03' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE1, CPT-REC-ERR
+               END-IF
+               IF MVT-TAUX IS NOT NUMERIC
+                 MOVE '04' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE1, CPT-REC-ERR
+               END-IF
+      *      EVALUER L'INTEGRITE DES ENREGISTREMENTS EN CODE 2
+             WHEN MVT-CODE = '2'
+               IF MVT-CORPS-2 = SPACES
+                 MOVE '05' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE2, CPT-REC-ERR
+               END-IF
+      *      EVALUER L'INTEGRITE DES ENREGISTREMENTS EN CODE 3
+             WHEN MVT-CODE = '3'
+               IF MVT-CORPS-3 = SPACES
+                 MOVE '06' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE3, CPT-REC-ERR
+               END-IF
+               IF MVT-CP NOT = SPACES
+                 IF MVT-CP IS NOT NUMERIC
+                 MOVE '07' TO EL-ZONE31
+                   PERFORM ECRIRE-ERREUR
+                   ADD 1 TO CPT-TYPE3, CPT-REC-ERR
+                 END-IF
+               END-IF
+      *      EVALUER L'INTEGRITE DES ENREGISTREMENTS EN CODE 4
+             WHEN MVT-CODE = '4'
+               IF NOT MVT-TYPE-OK
+                 MOVE '08' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE4, CPT-REC-ERR
+               END-IF
+               IF MVT-PRIME IS NOT NUMERIC
+                 MOVE '09' TO EL-ZONE31
+                 PERFORM ECRIRE-ERREUR
+                 ADD 1 TO CPT-TYPE4, CPT-REC-ERR
+               END-IF
+      *      SI LE CODE N'EST PAS COMPRIS ENTRE 1 ET 4, RENVOYER ERREUR
+             WHEN OTHER
+               MOVE '02' TO EL-ZONE31
+               PERFORM ECRIRE-ERREUR
+               ADD 1 TO CPT-CODE-INVALIDE, CPT-REC-ERR
+           END-EVALUATE
+
+           IF CPT-REC-ERR NOT = 0
+             ADD 1 TO CPT-ERR
+           END-IF
+
+           READ MVT
+           .
+
+      *ECRIRE DES LIGNES VIDES
+       ECRIRE-2-LIGNES.
+           PERFORM 2 TIMES
+             WRITE EERR FROM LIGNE-VIDE
+             WRITE ESTA FROM LIGNE-VIDE
+           END-PERFORM
+           .
+
+      *RECUPERER LA DATE ET L'HEURE
+       RECUPERER-HORODATAGE.
+           UNSTRING FUNCTION CURRENT-DATE INTO DATE-HEURE.
+           ACCEPT WS-DOW-9 FROM DAY-OF-WEEK
+           .
+
+      *ECRITURE D'UN HEADER POUR LES FICHIERS DE SORTIE
+       ECRIRE-HEADER.
+      *    CREATION DE LA PREMIERE LIGNE DE L'EN-TETE
+           MOVE PARM-USER TO H-USER
+
+           MOVE TAB-DOW-X(WS-DOW-9) TO H-JOUR
+
+           STRING DH-JJ '/' DH-MM '/' DH-AA
+             DELIMITED BY SIZE
+             INTO H-DATE
+           END-STRING
+
+           STRING DH-HH ':' DH-MI ':' DH-SS
+             DELIMITED BY SIZE
+             INTO H-HEURE
+           END-STRING
+
+           WRITE EERR FROM HEADER
+           WRITE EERR FROM HEADER-HEURE
+
+           WRITE ESTA FROM HEADER
+           WRITE ESTA FROM HEADER-HEURE
+
+           PERFORM ECRIRE-2-LIGNES
+           .
+
+       ECRIRE-TITRE.
+           MOVE 'LISTE DES ERREURS' TO T-LABEL
+           WRITE EERR FROM TITRE
+
+           MOVE 'STATISTIQUES SUR MVT' TO T-LABEL
+           WRITE ESTA FROM TITRE
+
+           MOVE ALL '-' TO T-LABEL
+           WRITE EERR FROM TITRE
+           WRITE ESTA FROM TITRE
+
+           PERFORM ECRIRE-2-LIGNES
+           .
+
+      *ECRIRE LE CONTENU DU FICHIER ERREUR
+       ECRIRE-ERREUR.
+           MOVE MVT-MATRICULE TO EL-ZONE1
+           CALL SP1 USING EL-ZONE31 EL-ZONE33 EL-ZONE2
+           WRITE EERR FROM ERR-LIGNE
+           .
+
+       INIT-COLS-ERR.
+           MOVE SPACE TO EL-ZONE31
+           MOVE ' - ' TO EL-ZONE32
+           MOVE SPACE TO EL-ZONE33
+           .
+
+       ECRIRE-COLS-ERR.
+           MOVE 'MATRICULE' TO EL-ZONE1
+           MOVE 'TYPE' TO EL-ZONE2
+           MOVE 'MESSAGE D''ERREUR' TO EL-ZONE3
+           WRITE EERR FROM ERR-LIGNE
+
+           MOVE ALL '-' TO EL-ZONE1
+           MOVE ALL '-' TO EL-ZONE2
+           MOVE ALL '-' TO EL-ZONE3
+           WRITE EERR FROM ERR-LIGNE
+
+           PERFORM INIT-COLS-ERR
+           .
+
+      *ECRIRE LE CONTENU DU FICHIER STA
+       ECRIRE-STA.
+           MOVE "10 - NOMBRE D'ENREGISTREMENTS LUS SUR MVT" TO SL-ZONE1
+           MOVE CPT-REC TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "11 - NOMBRE D'ENREGISTREMENTS EN ERREUR" TO SL-ZONE1
+           MOVE CPT-ERR TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     12 - NOMBRE D'ERREURS DE TYPE 1" TO SL-ZONE1
+           MOVE CPT-TYPE1 TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     13 - NOMBRE D'ERREURS DE TYPE 2" TO SL-ZONE1
+           MOVE CPT-TYPE2 TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     14 - NOMBRE D'ERREURS DE TYPE 3" TO SL-ZONE1
+           MOVE CPT-TYPE3 TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     15 - NOMBRE D'ERREURS DE TYPE 4" TO SL-ZONE1
+           MOVE CPT-TYPE4 TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     16 - NOMBRE D'ERREURS DE MATRICULE" TO SL-ZONE1
+           MOVE CPT-MAT-INVALIDE TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           MOVE "     17 - NOMBRE D'ERREURS DE CODE" TO SL-ZONE1
+           MOVE CPT-CODE-INVALIDE TO SL-ZONE2
+           WRITE ESTA FROM STA-LIGNE
+           .

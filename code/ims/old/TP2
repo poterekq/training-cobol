@@ -1,0 +1,64 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TP2.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  GU                PIC X(4) VALUE 'GU  '.
+       01  GN                PIC X(4) VALUE 'GN  '.
+       01  GNP               PIC X(4) VALUE 'GNP '.
+       01  IOA               PIC X(100).
+       01  IOA-P010A         REDEFINES IOA.
+           02  P010AK        PIC X(6).
+           02  P010ALIB      PIC X(44).
+           02  FILLER        PIC X(50).
+       01  IOA-P010B         REDEFINES IOA-P010A.
+           02  P010BSER      PIC X(5).
+           02  P010BLIB      PIC X(25).
+           02  FILLER        PIC X(70).
+       01  IOA-P010C         REDEFINES IOA-P010B.
+           02  P010CPRO      PIC X(6).
+           02  P010CLIB      PIC X(14).
+           02  P010CSER      PIC X(5).
+           02  P010CCAT      PIC X.
+           02  FILLER        PIC X(74).
+       01  SSA-NQ-PLAN       PIC X(9) VALUE 'P010A'.
+       01  DANS-GK           PIC 9 VALUE 0.
+       01 SSA-P010B PIC X(9) VALUE "P010B".
+       01 SSA-P010C-Q.
+          05 FILLER PIC X(8) VALUE "P010C".
+          05 FILLER PIC X VALUE "(".
+          05 FILLER PIC X(8) VALUE "P010CSER".
+          05 FILLER PIC XX VALUE "= ".
+          05 SSA-P010CSER PIC X(5).
+          05 FILLER PIC X VALUE ")".
+       LINKAGE SECTION.
+       01  PCB1.
+            05 PCB1-DBD1    PIC X(8).
+            05 PCB1-NIV     PIC X(2).
+            05 PCB1-CR      PIC X(2).
+            05 PCB1-OPT     PIC X(4).
+            05 FILLER       PIC X(4).
+            05 PCB1-SEG     PIC X(8).
+            05 PCB1-LGCLE   PIC S9(5) COMP.
+            05 PCB1-SENSEG  PIC S9(5) COMP.
+            05 PCB1-KFA     PIC X(17).
+       PROCEDURE DIVISION.
+            ENTRY 'DLITCBL' USING PCB1
+            CALL 'CBLTDLI' USING GN PCB1 IOA
+      *     DISPLAY 'PLAN: ' IOA(1:6) ' ' IOA(7:60)
+            PERFORM UNTIL PCB1-CR = 'GB'
+               DISPLAY IOA
+               MOVE P010BSER TO SSA-P010CSER
+               CALL 'CBLTDLI' USING GU PCB1 IOA SSA-P010C-Q
+               PERFORM UNTIL PCB1-CR NOT = SPACES
+      *        DISPLAY 'CR SSAQ: ' PCB1-CR
+                  DISPLAY 'OT SSAQ: ' IOA
+                  CALL 'CBLTDLI' USING GN PCB1 IOA SSA-P010C-Q
+               END-PERFORM
+      *        PERFORM UNTIL PCB1-CR = 'GE'
+      *           CALL 'CBLTDLI' USING GU PCB1 IOA SSA-P010C-Q
+      *        END-PERFORM
+               CALL 'CBLTDLI' USING GNP PCB1 IOA
+            END-PERFORM
+            GOBACK
+            .

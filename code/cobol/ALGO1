@@ -1,0 +1,130 @@
+       IDENTIFICATION DIVISION.                                         00010000
+       PROGRAM-ID. ALGO1.                                             00020000
+       AUTHOR. QUENTIN POTEREK                                          00030000
+       DATE-WRITTEN. 2 DECEMBRE 2021                                    00040000
+                                                                        00050000
+      * ---------------------------------                               00060000
+      * ALGORITHME 1 - GESTION DES STOCKS                               00070000
+      * ---------------------------------                               00080000
+                                                                        00090000
+       ENVIRONMENT DIVISION.                                            00100000
+       INPUT-OUTPUT SECTION.                                            00110000
+       FILE-CONTROL.                                                    00120000
+           SELECT STOCKFILE ASSIGN TO STCKFILE                          00130000
+             FILE STATUS WS-STOCK.
+           SELECT COMPTAFILE ASSIGN TO CMPTFILE
+             FILE STATUS WS-COMPTA.
+           SELECT DEPASSFILE ASSIGN TO DPSSFILE                         00150000
+             FILE STATUS WS-DEPASS.
+           SELECT ALERTEFILE ASSIGN TO ALRTFILE
+             FILE STATUS WS-ALERTE.
+
+       DATA DIVISION.                                                   00160000
+       FILE SECTION.                                                    00170000
+       FD STOCKFILE RECORDING F.                                        00180000
+       01 ESTOCK.
+         05 FILLER   PIC X(8).
+         05 ESTOCK.
+           10 ST-NUMERO-PRODUIT     PIC X(3).
+           10 ST-QUANTITE           PIC 9(4).
+           10 ST-PRIX-UNITAIRE      PIC 9(4)V99.
+           10 ST-QUANTITE-MIN       PIC 9(3).
+         05 FILLER   PIC X(56).
+       FD COMPTAFILE RECORDING F.
+       01 ECOMPTA.
+         05 CO-TXT-NUM              PIC X(7).
+         05 CO-NUMERO-PRODUIT       PIC X(3).
+         05 CO-TXT-PTOT             PIC X(15).
+         05 CO-PRIX-TOTAL           PIC ZZBZZZV,99.
+       FD DEPASSFILE RECORDING F.
+       01 EDEPASS.
+         05 DE-TXT-NUM              PIC X(7).
+         05 DE-NUMERO-PRODUIT       PIC X(3).
+         05 DE-TXT-PTOT             PIC X(15).
+         05 DE-PRIX-TOTAL           PIC ZZBZZZV,99.
+       FD ALERTEFILE RECORDING F.
+       01 EALERTE.
+         05 AL-TXT                  PIC X(33).
+         05 AL-NUMERO-PRODUIT       PIC X(3).
+
+       WORKING-STORAGE SECTION.
+       77 WS-STOCK   PIC XX.
+       77 WS-COMPTA  PIC XX.
+       77 WS-DEPASS  PIC XX.
+       77 WS-ALERTE  PIC XX.
+       77 TXT VALUE 'REAPPROVISIONNEMENT DU PRODUIT N ' PIC X(33).
+       77 PRIX-TOTAL PIC 9(4)V99.
+
+       PROCEDURE DIVISION.
+      * OUVERTURE DES FICHIERS ET VERIFICATION DE LEUR INTEGRITE
+           OPEN INPUT STOCKFILE
+           PERFORM TEST-STAT-STOCK
+           OPEN OUTPUT COMPTAFILE
+           PERFORM TEST-STAT-COMPTA
+           OPEN OUTPUT DEPASSFILE
+           PERFORM TEST-STAT-DEPASS
+           OPEN OUTPUT ALERTEFILE
+           PERFORM TEST-STAT-ALERTE
+           MOVE TXT TO AL-TXT
+           MOVE 'NUMERO ' TO CO-TXT-NUM
+           MOVE '    PRIX TOTAL ' TO CO-TXT-PTOT
+           MOVE 'NUMERO ' TO DE-TXT-NUM
+           MOVE '    PRIX TOTAL ' TO DE-TXT-PTOT
+      * LECTURE DU FICHIER DE STOCK ET ITERATION SUR SON CONTENU
+           READ STOCKFILE
+           PERFORM UNTIL WS-STOCK = '10'
+             PERFORM TEST-STAT-STOCK
+             COMPUTE PRIX-TOTAL = ST-QUANTITE * ST-PRIX-UNITAIRE
+             MOVE PRIX-TOTAL TO CO-PRIX-TOTAL
+             MOVE ST-NUMERO-PRODUIT TO CO-NUMERO-PRODUIT
+             WRITE ECOMPTA
+      * IMPRESSION DES LIGNES D'ALERTE
+           IF ST-QUANTITE < ST-QUANTITE-MIN
+             MOVE ST-NUMERO-PRODUIT TO AL-NUMERO-PRODUIT
+             WRITE EALERTE
+           ELSE
+      * ANALYSE DES DEPASSEMENTS
+             IF PRIX-TOTAL > 150
+               MOVE ST-NUMERO-PRODUIT TO DE-NUMERO-PRODUIT
+               MOVE PRIX-TOTAL TO DE-PRIX-TOTAL
+               WRITE EDEPASS
+             END-IF
+           END-IF
+           READ STOCKFILE
+           END-PERFORM
+      * FERMETURE DES FICHIERS
+           CLOSE STOCKFILE
+           PERFORM TEST-STAT-STOCK
+           CLOSE COMPTAFILE
+           PERFORM TEST-STAT-COMPTA
+           CLOSE DEPASSFILE
+           PERFORM TEST-STAT-DEPASS
+           CLOSE ALERTEFILE
+           PERFORM TEST-STAT-ALERTE
+           STOP RUN.
+
+      * TESTS SUR L'INTEGRITE DES FICHIERS
+       TEST-STAT-STOCK.
+           IF WS-STOCK NOT = '00'
+             DISPLAY 'ERRUR FICHIER STOCK - ' WS-STOCK
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+       TEST-STAT-COMPTA.
+           IF WS-COMPTA NOT = '00'
+             DISPLAY 'ERRUR FICHIER STOCK - ' WS-COMPTA
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+       TEST-STAT-DEPASS.
+           IF WS-DEPASS NOT = '00'
+             DISPLAY 'ERRUR FICHIER STOCK - ' WS-DEPASS
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+       TEST-STAT-ALERTE.
+           IF WS-ALERTE NOT = '00'
+             DISPLAY 'ERRUR FICHIER STOCK - ' WS-ALERTE
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.

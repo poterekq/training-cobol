@@ -1,0 +1,52 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG08.
+      * -------------------------
+      * LECTURE D'UN FICHIER KSDS
+      * -------------------------
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FIC1 ASSIGN DDFIC1
+             ORGANIZATION INDEXED
+             ACCESS SEQUENTIAL
+             RECORD KEY ASS-NUMERO
+             FILE STATUS WS-FIC1.
+       DATA DIVISION.
+       FILE SECTION.
+       FD FIC1.
+       01 EFIC1.
+       COPY COPYASS.
+         05            PIC X(9).
+       WORKING-STORAGE SECTION.
+       77 WS-FIC1 PIC XX.
+       77 WS-PRIME PIC ZBZZ9V,99.
+       PROCEDURE DIVISION.
+           OPEN INPUT FIC1
+           PERFORM TEST-STAT-FICH1
+           READ FIC1
+           PERFORM UNTIL WS-FIC1 = '10'
+             PERFORM TEST-STAT-FICH1
+             DISPLAY 'NUMERO     : ' ASS-NUMERO
+             DISPLAY 'NOM        : ' ASS-NOM
+             DISPLAY 'RUE        : ' ASS-RUE
+             DISPLAY 'CP         : ' ASS-CP
+             DISPLAY 'VILLE      : ' ASS-VILLE
+             DISPLAY 'VEHICULE   : ' ASS-VEHICULE
+             MOVE ASS-PRIME TO WS-PRIME
+             DISPLAY 'PRIME      : ' WS-PRIME
+             DISPLAY 'BONUS-MALUS: ' ASS-BONUS
+             DISPLAY 'TAUX       : 0,' ASS-TAUX
+             DISPLAY '---------------------------'
+             READ FIC1
+           END-PERFORM
+           CLOSE FIC1
+           PERFORM TEST-STAT-FICH1
+           STOP RUN
+           .
+       TEST-STAT-FICH1.
+           IF WS-FIC1 NOT = '00'
+             DISPLAY 'ERREUR FICHIER ASSURE ' WS-FIC1
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

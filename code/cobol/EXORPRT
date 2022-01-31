@@ -1,0 +1,170 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EXORPRT.
+
+      *
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT PGM ASSIGN TO PGM
+             FILE STATUS WS-PGM.
+
+      *
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD PGM RECORDING F.
+       01 EPGM PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      * STATUT DE FICHIER
+       77 WS-PGM       PIC XX.
+
+      * COMPTEURS
+       77 CPT-LIGNES   PIC 9(4) VALUE 0.
+       77 CPT-COMMENT  PIC 9(4) VALUE 0.
+       77 CPT-EMPTY    PIC 9(4) VALUE 0.
+
+      * STATISTIQUES
+       77 PERC-COMMENT PIC 99V99 VALUE 0.
+       77 PERC-EMPTY   PIC 99V99 VALUE 0.
+
+      * COMPARAISONS
+       77 EMPTY PIC X(80) VALUE SPACES.
+
+      * RAPPORT
+       01 HEADER.
+         02 H-USER     PIC X(4).
+         02 FILLER     PIC X(63).
+         02 H-DATE.
+           03 FILLER VALUE 'LE ' PIC XXX.
+           03 H-DATE-J           PIC XX.
+           03 FILLER VALUE '/'   PIC X.
+           03 H-DATE-M           PIC XX.
+           03 FILLER VALUE '/'   PIC X.
+           03 H-DATE-A           PIC X(4).
+       01 HORODATAGE.
+         02 FILLER               PIC X(75).
+         02 H-HEURE              PIC XX.
+         02 FILLER VALUE ':'     PIC X.
+         02 H-MIN                PIC XX.
+       01 TITRE.
+         02 FILLER PIC X(10).
+         02 T-PREFIXE VALUE 'STATISTIQUES DU PROGRAMME: ' PIC X(27).
+         02 T-FNAME PIC X(27).
+         02 FILLER PIC X(16).
+       01 STATS.
+         02 FILLER PIC X(10).
+         02 S-LABEL PIC X(42).
+         02 FILLER VALUE ' : ' PIC XXX.
+         02 S-VALEUR PIC ZZZ9.
+         02 S-SIGNE PIC X.
+         02 FILLER PIC X(20).
+
+       LINKAGE SECTION.
+       01 PARM-FIELD.
+          05 PARM-LENGTH PIC S9(4) COMP.
+          05 PARM-FNAME  PIC X(27).
+          05 PARM-COMMA  PIC X.
+          05 PARM-USER   PIC X(4).
+
+      *
+       PROCEDURE DIVISION USING PARM-FIELD.
+           PERFORM BEGIN-PGM
+
+           PERFORM RECUPERER-HEURE-DATE
+           PERFORM FAIRE-HEADER
+           PERFORM FAIRE-TITRE
+
+           PERFORM TRAITER-FICHIER UNTIL WS-PGM = '10'
+
+           PERFORM CALCULER-POURCENTAGES
+           PERFORM FAIRE-STATS
+
+           PERFORM END-PGM
+           GOBACK
+           .
+
+       BEGIN-PGM.
+      * OUVRIR LE FICHIER ET TESTER SON INTEGRITE
+           OPEN INPUT PGM
+           PERFORM TEST-STAT-PGM
+           READ PGM
+           .
+
+       RECUPERER-HEURE-DATE.
+      * ASSIGNER L'ENSEMBLE DES COMPOSANTES D'UNE DATE à DES VARIABLES
+           UNSTRING FUNCTION CURRENT-DATE INTO H-DATE-A H-DATE-M
+            H-DATE-J H-HEURE H-MIN
+           .
+
+       FAIRE-HEADER.
+      * FORMATER ET AFFICHER L'EN-TETE DU RAPPORT
+           MOVE PARM-USER TO H-USER
+           DISPLAY HEADER
+           DISPLAY HORODATAGE
+           DISPLAY ' '
+           .
+
+       FAIRE-TITRE.
+      * FORMATER ET AFFICHER LE TITRE DU RAPPORT
+           MOVE PARM-FNAME TO T-FNAME
+           DISPLAY TITRE
+           MOVE ALL '-' TO T-PREFIXE
+           MOVE SPACES TO T-FNAME
+           DISPLAY TITRE
+           DISPLAY ' '
+           .
+
+       TRAITER-FICHIER.
+      * ITERATION SUR LE FICHIER D'ENTREE ET MISE A JOUR DES COMPTEURS
+           PERFORM TEST-STAT-PGM
+           ADD 1 TO CPT-LIGNES
+           IF EPGM(1:7)  = '      *'
+             ADD 1 TO CPT-COMMENT
+           END-IF
+           IF EPGM = EMPTY
+             ADD 1 TO CPT-EMPTY
+           END-IF
+           READ PGM
+           .
+
+       CALCULER-POURCENTAGES.
+      * CALCUL DES POURCENTAGES DE LIGNES VIDES ET COMMENTAIRES
+           COMPUTE PERC-COMMENT = CPT-COMMENT / CPT-LIGNES * 100
+           COMPUTE PERC-EMPTY = CPT-EMPTY / CPT-LIGNES * 100
+           .
+
+       FAIRE-STATS.
+      * AFFICHER LES LIGNES DE STATISTIQUES DANS LE RAPPORT
+           MOVE 'NOMBRE DE LIGNES DU PROGRAMME' TO S-LABEL
+           MOVE CPT-LIGNES TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'NOMBRE DE LIGNES EN COMMENTAIRE' TO S-LABEL
+           MOVE CPT-COMMENT TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'NOMBRE DE LIGNES BLANCHES' TO S-LABEL
+           MOVE CPT-EMPTY TO S-VALEUR
+           DISPLAY STATS
+           MOVE '%' TO S-SIGNE
+           MOVE 'POURCENTAGE DE COMMENTAIRES' TO S-LABEL
+           MOVE PERC-COMMENT TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'POURCENTAGE DE LIGNES BLANCHES' TO S-LABEL
+           MOVE PERC-EMPTY TO S-VALEUR
+           DISPLAY STATS
+           .
+
+       END-PGM.
+      * FERMER LES FICHIERS UTILISES AVANT FIN DU PROGRAMME
+           CLOSE PGM
+           PERFORM TEST-STAT-PGM
+           .
+
+       TEST-STAT-PGM.
+      * TESTER L'INTEGRITE D'UN ENREGISTREMENT
+           IF WS-PGM NOT = '00'
+             DISPLAY 'ERREUR FICHIER PGM: ' WS-PGM
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

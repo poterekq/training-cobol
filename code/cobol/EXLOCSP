@@ -1,0 +1,58 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID.
+           EXLOCSP.
+      *    EXLOCSP IS INITIAL.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 23 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+
+       WORKING-STORAGE SECTION.
+       01 V1 PIC 9(3) VALUE 0.
+       01 V2 PIC 9(3) VALUE 0.
+
+       LOCAL-STORAGE SECTION.
+       01 V3 PIC 9(3) VALUE 0.
+
+       LINKAGE SECTION.
+       01 Z1 PIC 9(3).
+       01 Z2 PIC 9(3).
+       01 Z3 PIC 9(3).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING Z1 Z2 Z3.
+           DISPLAY '    BEF Z1 ' Z1 ' Z2 ' Z2 ' Z3 ' Z3
+           DISPLAY '    BEF V1 ' V1 ' V2 ' V2 ' V3 ' V3
+           ADD 10 TO Z1 Z2 Z3 V1 V2 V3
+           DISPLAY '    AFT Z1 ' Z1 ' Z2 ' Z2 ' Z3 ' Z3
+           DISPLAY '    AFT V1 ' V1 ' V2 ' V2 ' V3 ' V3
+           GOBACK
+           .

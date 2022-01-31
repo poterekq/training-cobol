@@ -1,0 +1,599 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      * TITRE:       MAJAS - MISE A JOUR ASSURES
+      * ------
+      *
+      * ENTREES:     ASSURES3 (KSDS) ÝOPEN INPUT¨
+      * --------     MVTPROJ  (ESDS) ÝOPEN INPUT¨
+      *
+      * SORTIES:     STATISTIQUES (SYSOUT)
+      * --------     ETATANO      (SEQ)  ÝOPEN OUTPUT¨
+      *              ASSURES4     (KSDS) ÝOPEN OUTPUT¨
+      *
+      * SOUS-PROG:   MKDATE:  FORMATE LA DATE (JOUR DE LA SEMAINE ET
+      * ----------            JJ/MM/AAAA) OU L'HEURE (HH:MM) POUR LA
+      *                       CREATION DES EN-TETES DE FICHIERS.
+      *
+      *              MAJASLB: RECUPERE LES LABELS POUR L'ECRITURE DES
+      *                       FICHIERS, SUR LA BASE DES CODES ANOMALIE
+      *                       ET DES CODES STATISTIQUES.
+      *
+      * DESCRIPTION: MAJAS EST UNE CHAINE DE TRAITEMENT POUR LA MISE A
+      * ------------ JOUR DES INFORMATIONS SUR LES ASSURES. ELLE PREND
+      *              LES FICHIERS ASSURES3 (SOURCE) ET MVTPROJ (INFOR-
+      *              -MATIONS SUR LES MISES A JOUR), PUIS ALIMENTE LE
+      *              FICHIER ASSURES4 (DESTINATION).
+      *
+      *              LA CHAINE DE TRAITEMENTS FOURNIT EGALEMENT DES
+      *              STATISTIQUES SUR LES ENREGISTREMENTS ET MODIFI-
+      *              -CATIONS, AINSI QU'UN RAPPORT D'ERREURS DE TRAI-
+      *              -TEMENT DES ASSURES (ETATANO).
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAJAS2.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 15 DECEMBRE 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT ASS3 ASSIGN TO ASSURES3
+             ORGANIZATION IS INDEXED
+             ACCESS MODE IS SEQUENTIAL
+             RECORD KEY IS MAT-X3
+             FILE STATUS WS-FS-ASS3.
+
+           SELECT MVTP ASSIGN TO AS-MVTPROJ
+             FILE STATUS WS-FS-MVTP.
+
+           SELECT ASS4 ASSIGN TO ASSURES4
+             ORGANIZATION IS INDEXED
+             ACCESS MODE IS SEQUENTIAL
+             RECORD KEY IS MAT-X4
+             FILE STATUS WS-FS-ASS4.
+
+           SELECT ANOM ASSIGN TO ETATANO
+             FILE STATUS WS-FS-ANOM.
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD ANOM RECORDING F.
+       01 EANOM PIC X(80).
+
+       FD ASS3.
+       01 EASS3.
+         COPY CASSURE3.
+
+       FD ASS4.
+       01 EASS4.
+         COPY CASSURE4.
+
+       FD MVTP.
+       01 EMVTP.
+         COPY CFMVTSE.
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STATUT DES FICHIERS.
+
+       01 WS-FS.
+         02 WS-FS-ANOM PIC XX.
+         02 WS-FS-ASS3 PIC XX.
+         02 WS-FS-ASS4 PIC XX.
+         02 WS-FS-MVTP PIC XX.
+
+      *HORODATAGE.
+
+       01 DATE-AAAAMMJJ.
+         02 DATE-AA PIC X(4).
+         02 DATE-MM PIC XX.
+         02 DATE-JJ PIC XX.
+
+       77 DATE-JJMMAAAA PIC X(10).
+
+      *SOUS-PROGRAMMES ET STRUCTURES DE CONTROLE.
+
+       01 SP.
+         02 SP1 PIC X(6) VALUE 'MKDATE'.
+         02 SP2 PIC X(8) VALUE 'MAJASLB2'.
+
+       01 SP2-CTRL.
+         02 SP2-PROC  PIC 9.
+         02 SP2-CODE  PIC 999.
+         02 SP2-LABEL PIC X(60).
+
+      *COMPTEURS.
+
+       01 CPT.
+         02 CPT-ASS3    PIC 9(4).
+         02 CPT-ASS4    PIC 9(4).
+         02 CPT-MVTP    PIC 9(4).
+         02 CPT-CREA    PIC 9(4).
+         02 CPT-MODI    PIC 9(4).
+         02 CPT-SUPP    PIC 9(4).
+         02 CPT-ANOM    PIC 9(4).
+         02 CPT-ANOM-CM PIC 9(4).
+         02 CPT-ANOM-CR PIC 9(4).
+         02 CPT-ANOM-MJ PIC 9(4).
+         02 CPT-ANOM-SU PIC 9(4).
+
+      * ETAT DES ANOMALIES.
+
+       01 ANOM-TITRE.
+         02 FILLER     PIC X(31).
+         02 ANOM-T-LAB PIC X(18).
+         02 FILLER     PIC X(31).
+
+       01 ANOM-HEADER.
+         02 ANOM-H-P1 PIC X(15).
+         02 FILLER    PIC XXX VALUE ' : '.
+         02 ANOM-H-P2 PIC X(10).
+         02 FILLER    PIC X(52).
+
+       01 ANOM-LIGNE.
+         02 ANOM-MAT PIC X(6).
+         02 FILLER   PIC X.
+         02 FILLER   PIC X(10) VALUE 'ERREUR   :'.
+         02 FILLER   PIC X.
+         02 ANOM-LAB PIC X(61).
+
+      *STATISTIQUES SUR LES FICHIERS.
+
+       77 HEADER-TYPE PIC X VALUE 'D'.
+       77 STATS-HEADER-LIGNE PIC X(80).
+
+       01 STATS-LIGNES.
+         02 STATS-L-SEP.
+           03 FILLER PIC X VALUE '+'.
+           03 FILLER PIC X(78) VALUE ALL '-'.
+           03 FILLER PIC X VALUE '+'.
+         02 STATS-L-TITRE.
+           03 FILLER PIC X VALUE '|'.
+           03 FILLER PIC X(33).
+           03 FILLER PIC X(12) VALUE 'STATISTIQUES'.
+           03 FILLER PIC X(33).
+           03 FILLER PIC X VALUE '|'.
+         02 STATS-L-VIDE.
+           03 FILLER PIC X VALUE '|'.
+           03 FILLER PIC X(78).
+           03 FILLER PIC X VALUE '|'.
+         02 STATS-L-RECORD.
+           03 FILLER PIC XX VALUE '| '.
+           03 STATS-LR-LAB PIC X(60).
+           03 FILLER PIC XXX VALUE ' : '.
+           03 STATS-LR-VAL PIC ZZZ9.
+           03 FILLER PIC X(9).
+           03 FILLER PIC XX VALUE ' |'.
+
+      *LIGNES FORMATAGE.
+
+       01 LIGNES-FMT.
+         02 LIGNE-VIDE PIC X(80) VALUE SPACES.
+         02 LIGNE-DASH PIC X(80) VALUE ALL '-'.
+
+       LINKAGE SECTION.
+      *----------------
+
+      *PARAMETRES PASSES AU JCL.
+
+       01 PARM-FIELD.
+          05 PARM-LENGTH PIC S9(4) COMP.
+          05 PARM-USER   PIC X(4).
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *////////////////////////////////////
+       PROCEDURE DIVISION USING PARM-FIELD.
+      *////////////////////////////////////
+
+           PERFORM 000-RACINE
+           GOBACK
+           .
+
+      * -------------------------------------------------------------- *
+
+      *BLOCS FST - EVALUATION DE L'INTEGRITE DES FICHIERS
+      *--------------------------------------------------
+
+       FST-ANOM.
+           IF WS-FS-ANOM NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER ANOMALIES: ' WS-FS-ANOM
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+
+       FST-ASS3.
+           IF WS-FS-ASS3 NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER ASSURES3: ' WS-FS-ASS3
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+
+       FST-ASS4.
+           IF WS-FS-ASS4 NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER ASSURES4: ' WS-FS-ASS4
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+
+       FST-MVTP.
+           IF WS-FS-MVTP NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER MVTPROJ: ' WS-FS-MVTP
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+      *BLOCS NO. 000S - RACINE DU PROGRAMME
+      *--------------------------------------------
+
+       000-RACINE.
+           PERFORM 100-DEBUT
+           PERFORM 200-TRAITEMENT
+           PERFORM 300-STATISTIQUES
+           PERFORM 400-FIN
+           .
+
+      *BLOCS NO. 100S - INITIALISATION DU PROGRAMME
+      *--------------------------------------------
+
+       100-DEBUT.
+           PERFORM 110-INITIALISER-ZONES
+           PERFORM 120-INITIALISER-SP2
+           PERFORM 130-OUVRIR-FICHIERS
+           PERFORM 140-FAIRE-DATE-JMA
+           PERFORM 150-ECRIRE-HEADER-ANOM
+           .
+
+
+       110-INITIALISER-ZONES.
+           INITIALIZE CPT
+           .
+
+
+       120-INITIALISER-SP2.
+           MOVE 0 TO SP2-PROC
+           CALL SP2 USING SP2-PROC SP2-CODE SP2-LABEL
+           MOVE 1 TO SP2-PROC
+           .
+
+
+       130-OUVRIR-FICHIERS.
+           OPEN OUTPUT ANOM
+           PERFORM FST-ANOM
+           OPEN INPUT ASS3
+           PERFORM FST-ASS3
+           OPEN INPUT MVTP
+           PERFORM FST-MVTP
+           OPEN OUTPUT ASS4
+           PERFORM FST-ASS4
+           .
+
+
+       140-FAIRE-DATE-JMA.
+           PERFORM 141-FAIRE-DATE-AMJ
+           STRING DATE-JJ '/' DATE-MM '/' DATE-AA
+             DELIMITED BY SIZE
+             INTO DATE-JJMMAAAA
+           END-STRING
+           .
+
+
+       141-FAIRE-DATE-AMJ.
+           UNSTRING FUNCTION CURRENT-DATE INTO DATE-AAAAMMJJ
+           .
+
+
+       150-ECRIRE-HEADER-ANOM.
+           MOVE 'ETAT DES ANOMALIES' TO ANOM-T-LAB
+           WRITE EANOM FROM ANOM-TITRE
+           MOVE ALL '-' TO ANOM-T-LAB
+           WRITE EANOM FROM ANOM-TITRE
+           WRITE EANOM FROM LIGNE-VIDE
+           MOVE 'MISE A JOUR DU' TO ANOM-H-P1
+           MOVE DATE-JJMMAAAA TO ANOM-H-P2
+           WRITE EANOM FROM ANOM-HEADER
+           MOVE 'GROUPE' TO ANOM-H-P1
+           MOVE 'MPFXX' TO ANOM-H-P2
+           WRITE EANOM FROM ANOM-HEADER
+           WRITE EANOM FROM LIGNE-VIDE
+           WRITE EANOM FROM LIGNE-DASH
+           .
+
+      *BLOCS NO. 200S - TRAITEMENTS
+      *----------------------------
+
+       200-TRAITEMENT.
+           PERFORM 210-INITIALISER-FICHIERS
+           PERFORM 220-APPARIER-FICHIERS
+           .
+
+
+       210-INITIALISER-FICHIERS.
+           READ ASS3
+           PERFORM FST-ASS3
+           READ MVTP
+           PERFORM FST-MVTP
+           .
+
+
+       220-APPARIER-FICHIERS.
+      *APPARIEMENT DES FICHIERS ASSURES3 ET MVTPROJ.
+           PERFORM UNTIL WS-FS-ASS3 = '10' OR WS-FS-MVTP = '10'
+             EVALUATE TRUE
+               WHEN MAT-A3 < MAT-MVT
+                 WRITE EASS4 FROM EASS3
+                 PERFORM 221-ITERER-ASS3
+               WHEN MAT-A3 > MAT-MVT
+                 PERFORM 223-TRAITER-MVTP-SEUL
+                 PERFORM 222-ITERER-MVTP
+               WHEN MAT-A3 = MAT-MVT
+                 PERFORM 224-TRAITER-MVTP-PAIRE
+                 PERFORM 221-ITERER-ASS3
+                 PERFORM 222-ITERER-MVTP
+               WHEN OTHER
+                 PERFORM 221-ITERER-ASS3
+                 PERFORM 222-ITERER-MVTP
+             END-EVALUATE
+           END-PERFORM
+
+      *    ALIMENTER ASS4 AVEC ASS3 SI NON TERMINE.
+           PERFORM 221-ITERER-ASS3 UNTIL WS-FS-ASS3 = '10'
+
+      *    ALIMENTER ASS4 AVEC MVTP SI NON TERMINE.
+           PERFORM UNTIL WS-FS-MVTP = '10'
+             PERFORM 223-TRAITER-MVTP-SEUL
+             PERFORM 222-ITERER-MVTP
+           END-PERFORM
+           .
+
+
+       221-ITERER-ASS3.
+      *ITERER SUR LE FICHIER ASS3, TOUT EN VERIFIANT L'INTEGRITE DES
+      *ENREGISTREMENTS ET EN METTANT A JOUR LE COMPTEUR D'ASSURES.
+           IF WS-FS-ASS3 NOT = '10'
+             PERFORM FST-ASS3
+             ADD 1 TO CPT-ASS3
+             READ ASS3
+           END-IF
+           .
+
+
+       222-ITERER-MVTP.
+      *ITERER SUR LE FICHIER MVTP, TOUT EN VERIFIANT L'INTEGRITE DES
+      *ENREGISTREMENTS ET EN METTANT A JOUR LE COMPTEUR DES MOUVEMENTS.
+           IF WS-FS-MVTP NOT = '10'
+             PERFORM FST-MVTP
+             ADD 1 TO CPT-MVTP
+             READ MVTP
+           END-IF
+           .
+
+
+       223-TRAITER-MVTP-SEUL.
+      *TRAITER LES CODES MOUVEMENTS DU FICHIER MVTP LORSQU'AUCUNE
+      *CORRESPONDANCE N'EST TROUVEE DANS LE FICHIER ASS3.
+           EVALUATE TYPE-MVT
+             WHEN 'C'
+               WRITE EASS4 FROM EMVTP(1:71)
+               ADD 1 TO CPT-ASS4, CPT-CREA
+             WHEN 'M'
+               MOVE 003 TO SP2-CODE
+               PERFORM 225-ECRIRE-ANOMALIE
+               ADD 1 TO CPT-ANOM-MJ
+             WHEN 'S'
+               MOVE 004 TO SP2-CODE
+               PERFORM 225-ECRIRE-ANOMALIE
+               ADD 1 TO CPT-ANOM-SU
+             WHEN OTHER
+               MOVE 001 TO SP2-CODE
+               PERFORM 225-ECRIRE-ANOMALIE
+               ADD 1 TO CPT-ANOM-CM
+           END-EVALUATE
+           .
+
+
+       224-TRAITER-MVTP-PAIRE.
+      *TRAITER LES CODES MOUVEMENTS DU FICHIER MVTP EN RELATION AVEC
+      *LE FICHIER ASS3 LORSQU'UNE CORRESPONDANCE ENTRE ASSURES EXISTE.
+           EVALUATE TYPE-MVT
+             WHEN 'S'
+               ADD 1 TO CPT-SUPP
+             WHEN 'M'
+               WRITE EASS4 FROM EMVTP(1:71)
+               ADD 1 TO CPT-ASS4, CPT-MODI
+             WHEN 'C'
+               MOVE 002 TO SP2-CODE
+               PERFORM 225-ECRIRE-ANOMALIE
+               WRITE EASS4 FROM EASS3
+               ADD 1 TO CPT-ASS4, CPT-ANOM-CR
+             WHEN OTHER
+               MOVE 001 TO SP2-CODE
+               PERFORM 225-ECRIRE-ANOMALIE
+               WRITE EASS4 FROM EASS3
+               ADD 1 TO CPT-ASS4, CPT-ANOM-CM
+           END-EVALUATE
+           .
+
+
+       225-ECRIRE-ANOMALIE.
+      *APPELLE LE SOUS-PROGRAMME MAJASLB POUR RECUPERER LE LABEL LIE A
+      *UN CODE ERREUR, ET ECRIT UNE LIGNE D'ERREUR DANS LES ANOMALIES
+      *POUR UN INDIVIDU OU MATRICULE DONNE.
+           MOVE 2 TO SP2-PROC
+           CALL SP2 USING SP2-PROC SP2-CODE SP2-LABEL
+           MOVE MAT-MVT TO ANOM-MAT
+           MOVE SP2-LABEL TO ANOM-LAB
+           WRITE EANOM FROM ANOM-LIGNE
+           .
+
+      *BLOCS NO. 300S - STATISTIQUES
+      *-----------------------------
+
+       300-STATISTIQUES.
+           PERFORM 310-ECRIRE-HEADER-STATS
+           PERFORM 320-ECRIRE-DEBUT-STATS
+           PERFORM 330-ECRIRE-CORPS-STATS
+           PERFORM 340-ECRIRE-FIN-STATS
+           .
+
+
+       310-ECRIRE-HEADER-STATS.
+      *APPELER LE SOUS-PROGRAMME MKDATE POUR ALIMENTER L'EN-TETE DU
+      *FICHIER DE STATISTIQUES (JOUR DE LA SEMAINE, DATE JJMMAAA ET
+      *HEURE), EN COMPLEMENT DE L'UTILISATEUR APPELANT LE PROGRAMME.
+           MOVE 'D' TO HEADER-TYPE
+           CALL SP1 USING HEADER-TYPE PARM-USER STATS-HEADER-LIGNE
+           DISPLAY STATS-HEADER-LIGNE
+           MOVE 'H' TO HEADER-TYPE
+           CALL SP1 USING HEADER-TYPE PARM-USER STATS-HEADER-LIGNE
+           DISPLAY STATS-HEADER-LIGNE
+           DISPLAY LIGNE-VIDE
+           .
+
+
+       320-ECRIRE-DEBUT-STATS.
+      *AFFICHER LE DEBUT DU TABLEAU DES STATISTIQUES, AVEC LE TITRE
+      *ET LES SEPARATEURS HORIZONTAUX.
+           DISPLAY STATS-L-SEP
+           DISPLAY STATS-L-TITRE
+           DISPLAY STATS-L-SEP
+           DISPLAY STATS-L-VIDE
+           .
+
+
+       330-ECRIRE-CORPS-STATS.
+      *    NOMBRE D'ENREGISTREMENTS D'ASSURES LUS
+           MOVE 005 TO SP2-CODE
+           MOVE CPT-ASS3 TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    NOMBRE D'ENREGISTREMENTS DE MOUVEMENTS LUS
+           MOVE 006 TO SP2-CODE
+           MOVE CPT-MVTP TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    NOMBRE D'ENREGISTREMENTS CREES DANS ASSURES4
+           MOVE 007 TO SP2-CODE
+           MOVE CPT-ASS4 TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    NOMBRE D'ENREGISTREMENTS EN CREATION
+           MOVE 008 TO SP2-CODE
+           MOVE CPT-CREA TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    NOMBRE D'ENREGISTREMENTS MODIFIES
+           MOVE 009 TO SP2-CODE
+           MOVE CPT-MODI TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    NOMBRE D'ENREGISTREMENTS SUPPRIMES
+           MOVE 010 TO SP2-CODE
+           MOVE CPT-SUPP TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+           DISPLAY STATS-L-VIDE
+
+      *    NOMBRE D'ENREGISTREMENTS EN ANOMALIE
+           MOVE 011 TO SP2-CODE
+           ADD CPT-ANOM-CM, CPT-ANOM-CR TO CPT-ANOM
+           ADD CPT-ANOM-MJ, CPT-ANOM-SU TO CPT-ANOM
+           MOVE CPT-ANOM TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    ANOMALIE DE CODE MOUVEMENT
+           MOVE 012 TO SP2-CODE
+           MOVE CPT-ANOM-CM TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    ANOMALIE DE CREATION
+           MOVE 013 TO SP2-CODE
+           MOVE CPT-ANOM-CR TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    ANOMALIE DE MISE A JOUR
+           MOVE 014 TO SP2-CODE
+           MOVE CPT-ANOM-MJ TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+      *    ANOMALIE DE SUPPRESSION
+           MOVE 015 TO SP2-CODE
+           MOVE CPT-ANOM-SU TO STATS-LR-VAL
+           PERFORM 331-ECRIRE-LIGNE-STATS
+           .
+
+
+       331-ECRIRE-LIGNE-STATS.
+      *APPELER LE SOUS-PROGRAMME MAJASLB POUR RECUPERER LE LABEL LIE A
+      *UN CODE RENSEIGNANT SUR LES STATISTIQUES DU TRAITEMENT.
+           CALL SP2 USING SP2-PROC SP2-CODE SP2-LABEL
+           MOVE SP2-LABEL TO STATS-LR-LAB
+           DISPLAY STATS-L-RECORD
+           .
+
+
+       340-ECRIRE-FIN-STATS.
+      *AFFICHER LES DEUX DERNIERES LIGNES DU TABLEAU DE STATISTIQUES.
+      *OPERATION PUREMENT COSMETIQUE.
+           DISPLAY STATS-L-VIDE
+           DISPLAY STATS-L-SEP
+           .
+
+      *BLOCS NO. 400S - FIN DE TRAITEMENT
+      *----------------------------------
+
+       400-FIN.
+           PERFORM 410-TUER-SP2
+           PERFORM 420-FERMER-FICHIERS
+           .
+
+
+       410-TUER-SP2.
+           MOVE 1 TO SP2-PROC
+           CALL SP2 USING SP2-PROC SP2-CODE SP2-LABEL
+           .
+
+
+       420-FERMER-FICHIERS.
+           CLOSE ANOM
+           PERFORM FST-ANOM
+           CLOSE ASS4
+           PERFORM FST-ASS4
+           CLOSE ASS3
+           PERFORM FST-ASS3
+           CLOSE MVTP
+           PERFORM FST-MVTP
+           .

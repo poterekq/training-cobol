@@ -1,0 +1,15 @@
+//API1D JOB 'SDJ DBDGEN  ',MSGCLASS=H,MSGLEVEL=(1,1),NOTIFY=&SYSUID,
+//    TIME=(,6)
+//***************************************************************
+//*COMPIL LINK DBD BASE DLI                                     *
+//*************************                                     *
+//*  CHANGER API1 PAR VOTRE USER_ID                             *
+//*  CHANGER DBDI10XX PAR VOTRE NOM DE BASE                     *
+//***************************************************************
+/*
+//PROCV8 JCLLIB ORDER=IMS810.PROCLIB
+//STEP0    EXEC DBDGEN,SOUT=*
+//C.SYSIN DD DSN=API1.SOURCE.IMS(DBD010A),DISP=SHR
+/*
+//L.SYSLMOD DD  DSN=API1.IMS.DBDLIB(DBM010),DISP=SHR
+//*

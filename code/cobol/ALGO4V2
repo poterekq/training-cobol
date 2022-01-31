@@ -1,0 +1,164 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ALGO4V2.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT REG ASSIGN TO REG
+             FILE STATUS WS-REG.
+           SELECT MVT ASSIGN TO MVT
+             FILE STATUS WS-MVT.
+           SELECT REC ASSIGN TO REC
+             FILE STATUS WS-REC.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD REG RECORDING F.
+       01 EREG.
+         05 REG-IMM       PIC 9(3).
+         05 REG-CODE      PIC X(2).
+         05 REG-NUMERO    PIC 9(2).
+         05 REG-NOM       PIC X(10).
+         05 FILLER        PIC X(63).
+       FD MVT RECORDING F.
+       01 EMVT.
+         05 MVT-IMM       PIC 9(3).
+         05 MVT-CODE      PIC X(2).
+         05 MVT-REGION    PIC 9(2).
+         05 MVT-AGENCE    PIC X(2).
+         05 MVT-VENDEUR   PIC X(2).
+         05 MVT-NB-DOSS   PIC 9(3).
+         05 FILLER        PIC X(66).
+       FD REC RECORDING F.
+       01 EREC            PIC X(80).
+
+       WORKING-STORAGE SECTION.
+       77 WS-REG PIC XX.
+       77 WS-MVT PIC XX.
+       77 WS-REC PIC XX.
+
+       77 REG-VALID-IMM PIC 999 VALUE 100.
+       77 MVT-VALID-IMM PIC 999 VALUE 100.
+
+       77 REG-NUM-TMP PIC XX.
+       77 AGC-NUM-TMP PIC XX.
+
+       77 RECAP-IMM   PIC 9(5) VALUE 1.
+       77 NB-DOSS-AGC PIC 9(5) VALUE 0.
+       77 NB-DOSS-REG PIC 9(5) VALUE 0.
+
+       PROCEDURE DIVISION.
+           OPEN INPUT REG
+           PERFORM TEST-STAT-REG
+           OPEN INPUT MVT
+           PERFORM TEST-STAT-MVT
+           OPEN OUTPUT REC
+           PERFORM TEST-STAT-REC
+
+           READ REG
+           PERFORM TEST-STAT-REG
+           READ MVT
+           PERFORM TEST-STAT-MVT
+
+           MOVE REG-NUMERO TO REG-NUM-TMP
+           MOVE MVT-AGENCE TO AGC-NUM-TMP
+
+           PERFORM UNTIL WS-REG = '10' OR WS-MVT = '10'
+             PERFORM TEST-STAT-REG
+             PERFORM TEST-STAT-MVT
+
+      *      PERFORM CHECK-IMM-MVT
+      *      PERFORM CHECK-IMM-REG
+             IF MVT-REGION = REG-NUMERO
+               IF MVT-AGENCE = AGC-NUM-TMP
+                 ADD MVT-NB-DOSS TO NB-DOSS-AGC
+                 READ MVT
+                 PERFORM TEST-STAT-MVT
+               ELSE
+                 DISPLAY 'AGC ' AGC-NUM-TMP ' ' NB-DOSS-AGC
+                 MOVE MVT-AGENCE TO AGC-NUM-TMP
+                 MOVE 0 TO NB-DOSS-AGC
+               END-IF
+             END-IF
+
+             IF MVT-REGION < REG-NUMERO
+               READ MVT
+               PERFORM TEST-STAT-MVT
+             END-IF
+
+             IF MVT-REGION > REG-NUMERO
+               READ REG
+               PERFORM TEST-STAT-REG
+             END-IF
+
+             PERFORM UNTIL REG-NUMERO NOT = REG-NUM-TMP OR WS-REG = '10'
+               PERFORM UNTIL MVT-AGENCE NOT = AGC-NUM-TMP
+                 ADD MVT-NB-DOSS TO NB-DOSS-AGC
+                 READ MVT
+                 PERFORM TEST-STAT-MVT
+                 IF MVT-AGENCE NOT = AGC-NUM-TMP
+      * DISPLAY
+                   DISPLAY 'AGC ' AGC-NUM-TMP ' ' NB-DOSS-AGC
+                 END-IF
+                 MOVE MVT-AGENCE TO AGC-NUM-TMP
+               END-PERFORM
+               ADD NB-DOSS-AGC TO NB-DOSS-REG
+               MOVE 0 TO NB-DOSS-AGC
+               READ REG
+               PERFORM TEST-STAT-REG
+               IF REG-NUMERO NOT = REG-NUM-TMP
+      * DISPLAY
+                 DISPLAY 'REG ' REG-NUM-TMP ' ' NB-DOSS-REG
+               END-IF
+               MOVE REG-NUMERO TO REG-NUM-TMP
+             END-PERFORM
+             MOVE 0 TO NB-DOSS-REG
+
+             IF MVT-REGION < REG-CODE AND WS-MVT NOT = '10'
+               PERFORM UNTIL MVT-REGION = REG-CODE
+                 READ MVT
+               END-PERFORM
+             END-IF
+
+             IF MVT-REGION > REG-CODE AND WS-REG NOT = '10'
+               PERFORM UNTIL MVT-REGION = REG-CODE
+                 READ REG
+               END-PERFORM
+             END-IF
+           END-PERFORM
+           STOP RUN.
+
+       CHECK-IMM-REG.
+           IF REG-IMM NOT = REG-VALID-IMM
+             DISPLAY 'INVALID REGION ID (' REG-IMM ').
+      -       'SHOULD BE ' REG-VALID-IMM '.'
+           END-IF
+           MOVE REG-IMM TO REG-VALID-IMM.
+
+       CHECK-IMM-MVT.
+           IF MVT-IMM NOT = MVT-VALID-IMM
+             DISPLAY 'INVALID MVT ID (' MVT-IMM ').
+      -       'SHOULD BE ' MVT-VALID-IMM '.'
+           END-IF
+           MOVE MVT-IMM TO MVT-VALID-IMM.
+
+       TEST-STAT-REG.
+           IF WS-REG NOT = '00'
+             DISPLAY 'ERREUR FICHIER REG: ' WS-REG
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-MVT.
+           IF WS-MVT NOT = '00'
+             DISPLAY 'ERREUR FICHIER MVT: ' WS-MVT
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-REC.
+           IF WS-REC NOT = '00'
+             DISPLAY 'ERREUR FICHIER MVT: ' WS-REC
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.

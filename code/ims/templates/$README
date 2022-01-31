@@ -1,0 +1,9 @@
+1/ LANCER LE DELDEF POUR CREER LE FICHIER VSAM           : DELDEF
+2/ DEFINIR  LA BASE (DBD)                                : DBD010A
+3/ GENERER  LE DBD                                       : DBDGEN
+4/ DEFINIR  LE PSB DE LOAD                               : PSB010L
+5/ GENERER  LE PSB DE LOAD                               : PSBGEN
+6/ LANCER LE JCL DE CHARGEMENT                           : DFSDDLT0
+7/ ECRIRE LES PROGRAMMES (N : NUM PROG, GG : NUM DU GPE) : TPNGG
+8/ COMPILER LE PROGRAMME                                 : COMPILE
+9/ EXECUTER LE PROGRAMME                                 : COMPILE

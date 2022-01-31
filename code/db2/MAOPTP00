@@ -1,0 +1,422 @@
+      CBL DYNAM
+
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:       MAOPTP00 - VERIFICATION DES DONNEES
+      * ------
+      *
+      * ENTREES:     MVT ÝSEQ¨ : FICHIER DES MOUVEMENTS A VERIFIER.
+      * --------     REJETS ÝDB2¨ : TABLE DES REJETS DANS LAQUELLE
+      *                 ECRIRE LES ENREGISTREMENT DE MVT EN ERREUR.
+      *
+      * SORTIES:     NMVT ÝSEQ¨ : FICHIER DES MOUVEMENTS VERIFIES.
+      * --------
+      *
+      * DESCRIPTION: MAJASOPT EST UN PROGRAMME DE VERIFICATION DES
+      * ------------ DONNES SUR LES MOUVEMENTS CLIENTS, UTILISE AVANT
+      *              L'EXECUTION DE LA CHAINE DE TRAITEMENTS MAJAS.
+      *
+      *              LES ENREGISTREMENTS VALIDES SONT PASSES EN SORTIE A
+      *              UN FICHIER NMVT. LES ENREGISTREMENTS QUI PRESENTENT
+      *              DES ANOMALIES SONT RENSEIGNES DANS UNE TABLE DB2
+      *              APPELEE REJETS.
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTP00.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 13 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT MVT ASSIGN TO MVT
+             FILE STATUS FS-MVT.
+
+           SELECT NMVT ASSIGN TO NMVT
+             FILE STATUS FS-NMVT.
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD MVT RECORDING F.
+       01 EMVT.
+          02 MAT-MVT           PIC X(6).
+          02 NOM-PRE-MVT       PIC X(20).
+          02 RUE-MVT           PIC X(18).
+          02 CP-MVT            PIC X(5).
+          02 VILLE-MVT         PIC X(12).
+          02 TYPE-VEHICULE     PIC X.
+          02 PRIME-MVT         PIC 9(4)V99.
+          02 BM-MVT            PIC X.
+          02 TAUX-MVT          PIC 99.
+          02                   PIC X.
+          02 TYPE-MVT          PIC X.
+          02                   PIC X(7).
+
+       FD NMVT RECORDING F.
+       01 ENMVT                PIC X(80).
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *PROGRAMMES -----------------------------------------------------
+
+       01 SP.
+          02 SP1               PIC X(8) VALUE 'MAOPTS01'.
+          02 SP2               PIC X(8) VALUE 'MAOPTS02'.
+
+      *STATUT DES FICHIERS --------------------------------------------
+
+       01 FS VALUE LOW-VALUE.
+          02 FS-MVT            PIC XX.
+          02 FS-NMVT           PIC XX.
+
+      *STRUCTURES DE CONTROLE -----------------------------------------
+
+      *MATRICULE TEMPORAIRE POUR EVALUER LES DOUBLONS
+
+       01 TMP-MAT-MVT          PIC X(6) VALUE 'RANDOM'.
+
+      *STATUT DE LA LIGNE EMVT ACTUELLE
+      *VALEURS POSSIBLES: 0 (PAS D'ERREUR), 1 (ERREUR)
+
+       01 STATUT-LIGNE         PIC 9 VALUE ZERO.
+
+      *STRUCTURES POUR REMPLIR LA TABLE DB2 REJETS --------------------
+
+      *COMPTEUR DE LIGNES DU FICHIER EMVT
+
+       01 NUMLN-9C             PIC S9(4) COMP VALUE 0.
+       01 NUMLN-9D             PIC 9(6).
+       01 NUMLN-XD             REDEFINES NUMLN-9D
+                               PIC X(6).
+
+      *LIGNE CONTENANT LES ERREURS POUR UN ENREGISTREMENT DE MVT
+
+       01 REJ-LIGNE.
+          02 REJ-NUMLN         PIC X(6) VALUE SPACES.
+          02 REJ-NOMPGM        PIC X(8) VALUE 'MAOPTP00'.
+          02 REJ-MAT           PIC X(6) VALUE SPACES.
+          02 REJ-NUMERR        PIC X(3) VALUE SPACES.
+
+      *STRUCTURES POUR SQLCA ------------------------------------------
+
+       01 SQLCODE              PIC S9(4) COMP.
+
+      *STRUCTURES POUR SP2 --------------------------------------------
+
+       01 FLAG             PIC 9(01) VALUE 0.
+
+       01 REJETS-LABELS VALUE SPACES.
+          02 RLA-NUMLN         PIC X(06).
+          02 RLA-NOMPGM        PIC X(08).
+          02 RLA-MAT           PIC X(06).
+          02 RLA-NUMERR        PIC X(03).
+          02 RLA-MES           PIC X(60).
+
+      *STRUCTURES TEMPORAIRES -----------------------------------------
+
+       01 TMP VALUE LOW-VALUE.
+          02 TMP-NUMLN         PIC X(06).
+          02 TMP-NOMPGM        PIC X(08).
+
+       LINKAGE SECTION.
+      *----------------
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *///////////////////
+       PROCEDURE DIVISION.
+      *///////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           PERFORM 100-DEBUTER
+           PERFORM 200-REMPLIR-REJETS
+           PERFORM 300-RECUPERER-REJETS
+           PERFORM 400-TERMINER
+           .
+
+
+      *BLOCS 100S - DEBUTER LE PROGRAMME
+      *---------------------------------
+
+       100-DEBUTER.
+           PERFORM 110-OUVRIR-FICHIERS
+           .
+
+
+       110-OUVRIR-FICHIERS.
+      *OUVRIR LES FICHIERS MVT ET NMVT
+           OPEN INPUT MVT
+           PERFORM TEST-FS-MVT
+           OPEN OUTPUT NMVT
+           PERFORM TEST-FS-NMVT
+           .
+
+
+      *BLOCS 200S - TRAITER LES DONNEES
+      *--------------------------------
+
+       200-REMPLIR-REJETS.
+           PERFORM 220-ITERER-MVT
+           .
+
+
+       220-ITERER-MVT.
+      *ANALYSER ET LIRE LES ENREGISTREMENTS DU FICHIER MVT
+      *ALIMENTER LA TABLE DB2 DES REJETS EN CAS D'ERREUR
+      *ALIMENTER LE FICHIER NVMT SI L'ENREGISTREMENT EST SAIN
+           READ MVT
+           PERFORM UNTIL FS-MVT = '10'
+              PERFORM TEST-FS-MVT
+              ADD 1 TO NUMLN-9C
+
+      *       PREPARER L'ENVIRONNEMENT POUR L'ITERATION
+              PERFORM 2220-INITIALISER-ERREUR
+
+      *       TESTER ET ECRIRE LES ERREURS DANS LA TABLE REJETS
+              PERFORM 221-TESTER-ERREUR-019
+              PERFORM 222-TESTER-ERREUR-021
+              PERFORM 223-TESTER-ERREUR-022
+              PERFORM 224-TESTER-ERREUR-023
+              PERFORM 225-TESTER-ERREUR-024
+              PERFORM 226-TESTER-ERREUR-026
+              PERFORM 227-TESTER-ERREUR-099
+
+      *       LES ENREGISTREMENTS SAINS SONT AJOUTES AU FICHIER NMVT
+              IF STATUT-LIGNE = 0
+                 WRITE ENMVT FROM EMVT
+                 PERFORM TEST-FS-NMVT
+              END-IF
+
+      *       PREPARER L'ENVIRONNEMENT POUR LE PROCHAIN ENREGISTREMENT
+              MOVE MAT-MVT TO TMP-MAT-MVT
+              MOVE 0 TO STATUT-LIGNE
+              READ MVT
+           END-PERFORM
+           .
+
+
+       2220-INITIALISER-ERREUR.
+           MOVE NUMLN-9C TO NUMLN-9D
+           MOVE NUMLN-XD TO REJ-NUMLN
+           MOVE MAT-MVT  TO REJ-MAT
+           .
+
+
+       2210-ECRIRE-ERREUR.
+           MOVE 1 TO STATUT-LIGNE
+           CALL SP1 USING REJ-LIGNE
+           .
+
+
+       221-TESTER-ERREUR-019.
+      *TESTER SI LE MATRICULE EST NON NUMERIQUE (CODE 019)
+           IF MAT-MVT IS NOT NUMERIC
+              MOVE '019' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       222-TESTER-ERREUR-021.
+      *TESTER SI LE TAUX EST NON NUMERIQUE (CODE 021)
+           IF TAUX-MVT IS NOT NUMERIC
+              MOVE '021' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       223-TESTER-ERREUR-022.
+      *TESTER SI LE NOM N'EST PAS RENSEIGNE (CODE 022)
+           IF NOM-PRE-MVT = SPACES OR LOW-VALUES
+              MOVE '022' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       224-TESTER-ERREUR-023.
+      *TESTER SI LA LIGNE N'EST PAS RENSEIGNEE (CODE 023)
+           IF EMVT = SPACES OR LOW-VALUES
+              MOVE '023' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       225-TESTER-ERREUR-024.
+      *TESTER SI LE CODE POSTAL N'EST PAS CORRECT (CODE 024)
+           IF CP-MVT IS NOT NUMERIC OR CP-MVT = LOW-VALUES
+              MOVE '024' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       226-TESTER-ERREUR-026.
+      *TESTER SI LA PRIME N'EST PAS NUMERIQUE (CODE 026)
+           IF PRIME-MVT IS NOT NUMERIC
+              MOVE '026' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+       227-TESTER-ERREUR-099.
+      *TESTER SI L'ENREGISTREMENT EST UN DOUBLON (CODE 099)
+           IF REJ-MAT = TMP-MAT-MVT
+              MOVE '099' TO REJ-NUMERR
+              PERFORM 2210-ECRIRE-ERREUR
+           END-IF
+           .
+
+
+      *BLOCS 300S - AFFICHER LES LABELS SUR LES REJETS
+      *-----------------------------------------------
+
+       300-RECUPERER-REJETS.
+           PERFORM 310-OUVRIR-CURSEUR
+           PERFORM UNTIL SQLCODE NOT = 0
+              PERFORM 320-FETCH-CURSEUR
+              IF SQLCODE = 0
+                 PERFORM 330-AFFICHER-REJETS
+              END-IF
+           END-PERFORM
+           PERFORM 340-FERMER-CURSEUR
+           .
+
+
+       310-OUVRIR-CURSEUR.
+           MOVE 1 TO FLAG
+           CALL SP2 USING SQLCODE, FLAG, REJETS-LABELS
+           .
+
+
+       320-FETCH-CURSEUR.
+           MOVE 2 TO FLAG
+           CALL SP2 USING SQLCODE, FLAG, REJETS-LABELS
+           .
+
+
+       330-AFFICHER-REJETS.
+           IF RLA-NOMPGM NOT = TMP-NOMPGM
+              DISPLAY '+----------------------------+'
+              DISPLAY '| NOM DU PROGRAMME: ' RLA-NOMPGM ' |'
+              DISPLAY '+----------------------------+'
+              MOVE RLA-NOMPGM TO TMP-NOMPGM
+           END-IF
+
+           IF RLA-NUMLN NOT = TMP-NUMLN
+             DISPLAY ' '
+             DISPLAY 'LIGNE: ' RLA-NUMLN
+             DISPLAY ' '
+             DISPLAY ' MAT    | NUMERR  | LABEL          '
+             DISPLAY '--------+---------+----------------'
+             MOVE RLA-NUMLN TO TMP-NUMLN
+           END-IF
+
+           DISPLAY ' ' RLA-MAT ' | ' RLA-NUMERR '     | ' RLA-MES
+           .
+
+
+       340-FERMER-CURSEUR.
+           MOVE 3 TO FLAG
+           CALL SP2 USING SQLCODE, FLAG, REJETS-LABELS
+           .
+
+
+      *BLOCS 400S - TERMINER LE PROGRAMME
+      *----------------------------------
+
+       400-TERMINER.
+           PERFORM 410-FERMER-FICHIERS
+           .
+
+
+       410-FERMER-FICHIERS.
+      *FERMER LES FICHIERS NMVT ET MVT
+           CLOSE NMVT
+           PERFORM TEST-FS-NMVT
+           CLOSE MVT
+           PERFORM TEST-FS-MVT
+           .
+
+
+      *BLOCS FS - STATUT DES FICHIERS
+      *------------------------------
+
+       TEST-FS-MVT.
+      *TESTER L'INTEGRITE DU FICHIER MVT ET DE SES ENREGISTREMENTS
+           IF FS-MVT NOT = '00'
+              DISPLAY 'ERREUR FICHIER MVT: ' FS-MVT
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .
+
+
+       TEST-FS-NMVT.
+      *TESTER L'INTEGRITE DU FICHIER NMVT ET DE SES ENREGISTREMENTS
+           IF FS-NMVT NOT = '00'
+              DISPLAY 'ERREUR FICHIER NMVT: ' FS-NMVT
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

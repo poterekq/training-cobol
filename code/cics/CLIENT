@@ -1,0 +1,14 @@
+      *----------------------------------------------------------*
+      *    DESCRIPTION DE L'ENREGISTREMENT DU FICHIER CLIENT     *
+      *     (FICHIER VSAM KSDS: LONG ENGT = 80  (LONG CLE = 5)   *
+      *----------------------------------------------------------*
+
+       01  ENREGT-CLIENT.
+      *--------------------------------------  NUMERO DU CLIENT
+           02  NUMCLI      PIC X(05).
+      *--------------------------------------  NOM DU CLIENT
+           02  NOMCLI      PIC X(25).
+      *--------------------------------------  LIMITE DE CREDIT
+           02  LIMITE      PIC S9(9) COMP-3.
+      *--------------------------------------  RESTE
+           02  FILLER      PIC X(45).

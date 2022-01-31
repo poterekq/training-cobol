@@ -1,0 +1,8 @@
+//API1P12  JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*                                                                     00020000
+//* EXECUTION DU PROGRAMME DE LECTURE D'UN RRDS                         00030000
+//*                                                                     00040000
+//READSDS  EXEC PGM=PROG12                                              00050000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00051000
+//SYSOUT   DD SYSOUT=H                                                  00060000
+//DDFIC1   DD DSN=API1.TEST.RRDS,DISP=OLD                               00070000

@@ -1,0 +1,14 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TESTJUST.
+      * ------------------------
+      * TEST DE LA JUSTIFICATION
+      * ------------------------
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77 ZONE JUST PIC X(4) VALUE 'AB'.
+       PROCEDURE DIVISION.
+           DISPLAY '==>' ZONE '<=='
+           MOVE 'CD' TO ZONE
+           DISPLAY '==>' ZONE '<=='
+           STOP RUN
+           .

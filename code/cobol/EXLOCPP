@@ -1,0 +1,77 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * LOREM IPSUM
+
+       PROGRAM-ID. EXLOCPP.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 23 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+
+       WORKING-STORAGE SECTION.
+       01 CPT PIC 9 VALUE 0.
+
+       01 SP1 PIC X(7) VALUE 'EXLOCSP'.
+
+       01 Z1 PIC 9(3) VALUE 0.
+       01 Z2 PIC 9(3) VALUE 0.
+       01 Z3 PIC 9(3) VALUE 0.
+
+       01 ENGT.
+         02 MATRICULE PIC 9(6).
+         02 NOMPRENOM.
+            04 NOM    PIC X(12).
+            04 PNOM   PIC X(08).
+         02 ADRESSE.
+            04 ADR1   PIC X(08).
+            04 ADR2   PIC X(10).
+         02 CP        PIC 9(5).
+         02 VILLE     PIC X(12).
+         02 VEHICULE  PIC X.
+         02 PRIME     PIC 9(4)V99.
+         02 BONMAL    PIC X.
+         02 TAUX      PIC 99.
+         02 FILLER    PIC X(9).
+         66 ZONER RENAMES NOM  THRU ADR1.
+       LINKAGE SECTION.
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION.
+           ACCEPT  ENGT
+           DISPLAY ENGT
+           DISPLAY ZONER
+           GOBACK.
+
+           PERFORM VARYING CPT FROM 0 BY 1 UNTIL CPT > 1
+             CALL SP1 USING BY REFERENCE Z1 Z2 BY CONTENT Z3
+             DISPLAY '-----------------------------'
+             DISPLAY 'IT' CPT '     Z1 ' Z1 ' Z2 ' Z2 ' Z3 ' Z3
+             DISPLAY SPACES
+           END-PERFORM
+           GOBACK
+           .

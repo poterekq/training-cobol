@@ -1,0 +1,25 @@
+//APIXCLK JOB 'SDJ FORMATION',MSGLEVEL=(1,1),MSGCLASS=H,CLASS=A,
+//   NOTIFY=&SYSUID
+//*------------------------------------------------------*
+//*      MODIFIER XX PAR N¢ DU GROUPE  (XX 01 @ 15)      *
+//*      CHANGER 'MAOPTP31ALLSER VOTRE NOM DE PROGRAMME *
+//*------------------------------------------------------*
+//*
+//*********************************************************************
+//*  PROCEDURE DE COMPIL/LINK EDIT D'UN PROGRAMME COBOL MAOPTP31      *
+//*                                                                   *
+//*  TAPER LA COMMANDE "C API1 PAR API1 : (XX N¢ DE VOTRE GROUPE) *
+//*                                                                   *
+//*  TAPER LA COMMANDE "SUB" AFIN DE SOUMETTRE VOTRE JOB              *
+//*                                                                   *
+//*********************************************************************
+//*
+//APPEL   EXEC IGYWCL,PARM.COBOL=(ADV,OBJECT,LIB,TEST,APOST)
+//COBOL.SYSIN  DD DISP=SHR,DSN=API1.SOURCE.DB2(MAOPTP32)
+//COBOL.SYSLIB DD DISP=SHR,DSN=CEE.SCEESAMP
+//             DD DISP=SHR,DSN=API1.SOURCE.COBOL
+//             DD DISP=SHR,DSN=API0.SOURCE.COPY
+//LKED.SYSLMOD DD DSN=API1.COBOL.LOAD,DISP=(SHR,KEEP,KEEP)
+//LKED.SYSIN DD *
+ NAME MAOPTP32(R)
+/*

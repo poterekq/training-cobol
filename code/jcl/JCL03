@@ -1,0 +1,14 @@
+//API1J3   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*
+//*--------------------------------------------------------*            00000230
+//*     ECRITURE DANS UN FICHIER SEQUENTIEL                *            00000230
+//*--------------------------------------------------------*
+//*
+//DELFI    EXEC  PGM=IEBGENER
+//SYSUT2   DD    DSN=API1.TEST.JCL2,DISP=OLD
+//SYSPRINT DD    SYSOUT=H
+//SYSIN    DD    *
+//SYSUT1   DD    *
+ALI BABA ET LES 40 VOLEURS
+WASSUP BABES
+U'RE NOT MY REAL DAD AND NEVER WILL BE

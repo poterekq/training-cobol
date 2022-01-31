@@ -1,0 +1,146 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ALGO6.
+
+      *
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER. IBM-370.
+      *SOURCE-COMPUTER. IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CLIENT ASSIGN TO CLIENT
+             FILE STATUS WS-F-CL.
+           SELECT ADRESSES ASSIGN ADRESSES
+             FILE STATUS WS-F-AD.
+
+      *
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD CLIENT RECORDING F.
+       01 ECLIENT.
+         05 CL-CODE PIC X.
+         05 CL-NUM-CPT PIC X(5).
+         05 CL-BODY-C1.
+           10 CL-C1-NOM PIC X(20).
+           10 FILLER PIC X(54).
+         05 CL-BODY-C2 REDEFINES CL-BODY-C1.
+           10 CL-C2-ADR PIC X(27).
+           10 CL-C2-DPT PIC XX.
+           10 FILLER PIC X(45).
+         05 CL-BODY-C3 REDEFINES CL-BODY-C1.
+           10 CL-C3-MONTANT PIC 9(6)V99.
+           10 FILLER PIC X(66).
+
+       FD ADRESSES RECORDING F.
+       01 EADRESSE.
+         05 AD-CODE PIC XXX.
+         05 AD-NUM-CPT PIC X(5).
+         05 AD-NOM PIC X(20).
+         05 AD-ADR PIC X(27).
+         05 AD-DPT PIC XX.
+         05 AD-TOT-MONTANT PIC 9(9)V99.
+         05 FILLER PIC X(11).
+
+       WORKING-STORAGE SECTION.
+      * STATUT DES FICHIERS
+       77 WS-F-CL PIC XX.
+       77 WS-F-AD PIC XX.
+
+      * VARIABLES DE SUIVI
+      * 77 WS-NUM-CPT PIC X(5).
+
+      * COMPTEURS
+       77 WS-CPT1 PIC 999 VALUE 0.
+       77 WS-CPT2 PIC 999 VALUE 0.
+       77 WS-CPT3 PIC 999 VALUE 0.
+       77 WS-TOT-MONTANT PIC 9(9)V99 VALUE 0.
+
+      *
+       PROCEDURE DIVISION.
+      * OUVERTURE DES FICHIERS ET TESTS D'INTEGRITE
+           OPEN INPUT CLIENT
+           PERFORM TEST-STAT-CL
+           OPEN OUTPUT ADRESSES
+           PERFORM TEST-STAT-AD
+
+           MOVE '100' TO AD-CODE
+
+      * INITIALISATION DU TRAVAIL
+           READ CLIENT
+           PERFORM TEST-STAT-CL
+
+      * ITERATION SUR LE FICHIER D'ENTREE
+           PERFORM UNTIL WS-F-CL = '10'
+             PERFORM TEST-STAT-CL
+      * INITIALISATION DES COMPTEURS
+             MOVE 0 TO WS-CPT1
+             MOVE 0 TO WS-CPT2
+             MOVE 0 TO WS-CPT3
+             MOVE 0 TO AD-TOT-MONTANT
+             MOVE CL-NUM-CPT TO AD-NUM-CPT
+
+      * ITERATION SUR LES ENREGISTREMENTS ASSOCIES A UN MEME COMPTE
+             PERFORM UNTIL CL-NUM-CPT NOT = AD-NUM-CPT OR WS-F-CL = '10'
+
+               EVALUATE CL-CODE
+                 WHEN '1'
+                   MOVE CL-C1-NOM TO AD-NOM
+                   ADD 1 TO WS-CPT1
+                 WHEN '2'
+                   MOVE CL-C2-ADR TO AD-ADR
+                   MOVE CL-C2-DPT TO AD-DPT
+                   ADD 1 TO WS-CPT2
+                 WHEN '3'
+                   ADD CL-C3-MONTANT TO AD-TOT-MONTANT
+                   ADD 1 TO WS-CPT3
+                 WHEN OTHER
+                   DISPLAY 'ERREUR POUR ' CL-NUM-CPT '!'
+               END-EVALUATE
+
+               READ CLIENT
+
+             END-PERFORM
+
+      * ANALYSE DES CODE ET COMPTEURS POUR ECRIRE LES ENREGISTREMENTS
+             IF WS-CPT1 = 1 AND WS-CPT2 = 1
+                 WRITE EADRESSE
+             END-IF
+             IF WS-CPT1 = 0
+                 DISPLAY "TYPE 1 ABSENT POUR " AD-NUM-CPT
+             END-IF
+             IF WS-CPT2 = 0
+                 DISPLAY "TYPE 2 ABSENT POUR " AD-NUM-CPT
+             END-IF
+             IF WS-CPT1 > 1
+                 DISPLAY "TYPE 1 EN DOUBLE POUR " AD-NUM-CPT
+             END-IF
+             IF WS-CPT2 > 1
+                 DISPLAY "TYPE 2 EN DOUBLE POUR " AD-NUM-CPT
+             END-IF
+           END-PERFORM
+
+      * FERMETURE DES FICHIERS ET VERIFICATION D'INTEGRITE
+           CLOSE CLIENT
+           PERFORM TEST-STAT-CL
+           CLOSE ADRESSES
+           PERFORM TEST-STAT-AD
+
+           STOP RUN.
+
+       TEST-STAT-CL.
+           IF WS-F-CL NOT = '00'
+             DISPLAY 'ERREUR SUR LE FICHIER CLIENT: ' WS-F-CL
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.
+
+       TEST-STAT-AD.
+           IF WS-F-AD NOT = '00'
+             DISPLAY 'ERREUR SUR LE FICHIER ADRESSES: ' WS-F-AD
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF.

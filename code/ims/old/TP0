@@ -1,0 +1,45 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TP0.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  GU                PIC X(4) VALUE 'GU  '.
+       01  GN                PIC X(4) VALUE 'GN  '.
+       01  IOA               PIC X(100).
+       01  SSA-NQ-PLAN       PIC X(9) VALUE 'P010A'.
+       01  DANS-GK           PIC 9 VALUE 0.
+       LINKAGE SECTION.
+       01  PCB1.
+            05 PCB1-DBD1    PIC X(8).
+            05 PCB1-NIV     PIC X(2).
+            05 PCB1-CR      PIC X(2).
+            05 PCB1-OPT     PIC X(4).
+            05 FILLER       PIC X(4).
+            05 PCB1-SEG     PIC X(8).
+            05 PCB1-LGCLE   PIC S9(5) COMP.
+            05 PCB1-SENSEG  PIC S9(5) COMP.
+            05 PCB1-KFA     PIC X(17).
+       PROCEDURE DIVISION.
+            ENTRY 'DLITCBL' USING PCB1
+            CALL 'CBLTDLI' USING GN PCB1 IOA
+            DISPLAY 'PLAN: ' IOA(1:6) ' ' IOA(7:60)
+            PERFORM UNTIL PCB1-CR = 'GB'
+               CALL 'CBLTDLI' USING GN PCB1 IOA
+               EVALUATE PCB1-CR
+                  WHEN SPACE
+                     EVALUATE DANS-GK
+                        WHEN 0
+                           DISPLAY '  SERVICE: ' IOA
+                        WHEN 1
+                           DISPLAY '  PRODUIT: ' IOA
+                     END-EVALUATE
+                  WHEN 'GK'
+                     DISPLAY '  PRODUIT: ' IOA
+                     MOVE 1 TO DANS-GK
+                  WHEN 'GA'
+                     DISPLAY 'PLAN: ' IOA(1:6) ' ' IOA(7:60)
+                     MOVE 0 TO DANS-GK
+               END-EVALUATE
+            END-PERFORM
+            GOBACK
+            .

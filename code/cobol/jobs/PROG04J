@@ -1,0 +1,14 @@
+//API1P4   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*                                                                     00020000
+//* EXECUTION DU PROGRAMME DE BIENVENUE                                 00030000
+//*                                                                     00040000
+//WELCOME  EXEC PGM=PROG04                                              00050000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00051000
+//SYSOUT   DD SYSOUT=H                                                  00052000
+//SYSIN    DD *                                                         00053000
+0                                                                       00053101
+1                                                                       00054000
+2                                                                       00055000
+3                                                                       00056000
+4                                                                       00057000
+                                                                        00058000

@@ -1,0 +1,16 @@
+         DBD   NAME=DBM010,ACCESS=(HDAM,VSAM),RMNAME=(DFSHDC40,2,20)    00010002
+         DATASET DD1=DBM010A,DEVICE=3380,SIZE=4096                      00020000
+         SEGM  NAME=P010A,PARENT=0,BYTES=60                             00030000
+         FIELD NAME=(P010AK,SEQ,U),START=1,BYTES=06                     00040000
+         FIELD NAME=P010ALIB,START=7,BYTES=44                           00050000
+         SEGM  NAME=P010B,PARENT=P010A,BYTES=40                         00060000
+         FIELD NAME=(P010BSER,SEQ,U),START=1,BYTES=05                   00070000
+         FIELD NAME=P010BLIB,START=6,BYTES=25                           00080000
+         SEGM  NAME=P010C,PARENT=P010A,BYTES=30                         00090000
+         FIELD NAME=(P010CPRO,SEQ,U),START=1,BYTES=06                   00100000
+         FIELD NAME=P010CLIB,START=7,BYTES=14                           00110000
+         FIELD NAME=P010CSER,START=21,BYTES=5                           00120000
+         FIELD NAME=P010CCAT,START=26,BYTES=1                           00130000
+         DBDGEN                                                         00140000
+         FINISH                                                         00150000
+         END                                                            00160000

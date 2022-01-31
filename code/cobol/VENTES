@@ -1,0 +1,211 @@
+       CBL SSRANGE
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.    VENTES.
+      *********************************************
+      * LISTES DES VENTES PAR VENDEUR ET PAR DATE *
+      * AVEC DES TABLEAUX                         *
+      *********************************************
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FVENTES     ASSIGN VENTES
+             FILE STATUS             WS-VEN.
+           SELECT IMP         ASSIGN IMP
+             FILE STATUS             WS-IMP.
+       DATA DIVISION.
+       FILE SECTION.
+       FD  FVENTES RECORDING F.
+       01  EVENTES.
+           05 V-CODE          PIC X.
+           05 CODE-1.
+             10 V-VENDEUR     PIC X(15) OCCURS 4.
+             10               PIC X(19).
+           05 CODE-2 REDEFINES CODE-1.
+             10 V-DATE        PIC X(8)  OCCURS 5.
+             10               PIC X(39).
+           05 CODE-3 REDEFINES CODE-2.
+             10 V-IND-VEN      PIC 9.
+             10 V-IND-DATE     PIC 9.
+             10 V-MONTANT      PIC 9(7)V99.
+             10                PIC X(68).
+       FD IMP RECORDING F.
+       01 EIMP                 PIC X(80).
+       WORKING-STORAGE SECTION.
+       77 IND-VEN              PIC S9(4) COMP.
+       77 IND-DATE             PIC S9(4) COMP.
+       77 WS-VEN               PIC XX.
+       77 WS-IMP               PIC XX.
+       77 WS-TOT               PIC S9(7)V99 COMP-3.
+       77 WS-TOT-GEN           PIC S9(7)V99 COMP-3 VALUE 0.
+       01 TABLE-VENDEURS.
+           05 T-VENDEUR        PIC X(15) OCCURS 4.
+       01 TABLE-DATES.
+           05 T-DATE           PIC XX/XX/XXXX OCCURS 5.
+       01 TABLE-MONTANTS.
+           05 OCCURS 4.
+             10 OCCURS 5.
+               15 T-MONT       PIC S9(7)V99 COMP-3.
+       01 TABLE-MOIS.
+           05 VALUE 'JANVIER  FEVRIER  MARS     AVRIL    MAI      JUIN
+      -    '   JUILLET  AOUT     SEPTEMBREOCTOBRE  NOVEMBRE DECEMBRE '
+               PIC X(108).
+      *01 TABLE-MOIS.
+      *    05 VALUE 'JANVIER  FEVRIER  MARS     AVRIL    ' PIC X(36).
+      *    05 VALUE 'MAI      JUIN     JUILLET  AOUT     ' PIC X(36).
+      *    05 VALUE 'SEPTEMBREOCTOBRE  NOVEMBRE DECEMBRE ' PIC X(36).
+       01 REDEFINES TABLE-MOIS.
+           05 T-MOIS           PIC X(9) OCCURS 12.
+       01 DAT.
+           05 AA               PIC XXXX.
+           05 MM               PIC 99.
+           05 JJ               PIC XX.
+       01 LIGNE1.
+           05 VALUE SPACE      PIC X(10).
+           05 L1-TITRE VALUE 'LISTE DES VENTES PAR VENDEUR' PIC X(28).
+           05 VALUE SPACE      PIC X(15).
+           05 L1-DATE.
+             10 JJ             PIC XXX.
+             10 L1-MOIS        PIC X(10).
+             10 AA             PIC XXXX.
+       01 LIGNE2.
+           05 L2-VENDEUR.
+             10                PIC XX.
+             10 L2-DATE        PIC X(10).
+             10                PIC XXX.
+       01 LIGNE3.
+           05 VALUE SPACE      PIC X(12).
+           05 L3-DATE          PIC X(10).
+           05 VALUE SPACE      PIC X(23).
+           05 L3-MONT          PIC ZZZBZZ9V,99.
+       01 LIGNE4.
+           05 VALUE SPACE      PIC X(14).
+           05 L4-VENDEUR       PIC X(15).
+           05 VALUE SPACE      PIC X(16).
+           05 L4-MONT          PIC ZZZBZZ9V,99.
+       01 DUMP.
+           05 DUMP9            PIC S999 COMP-3.
+       PROCEDURE DIVISION.
+           ACCEPT DAT FROM DATE YYYYMMDD
+           MOVE CORR DAT   TO L1-DATE
+           MOVE 50 TO MM
+           MOVE T-MOIS(MM) TO L1-MOIS
+           OPEN INPUT  FVENTES
+           PERFORM TEST-STAT-VEN
+           OPEN OUTPUT IMP
+           PERFORM TEST-STAT-IMP
+           MOVE LIGNE1 TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+           READ FVENTES
+           PERFORM UNTIL V-CODE = '9'
+                   OR    WS-VEN = '10'
+             PERFORM TEST-STAT-VEN
+             EVALUATE V-CODE
+               WHEN '1'
+                 PERFORM VARYING IND-VEN FROM 1 BY 1 UNTIL IND-VEN > 4
+                   MOVE V-VENDEUR(IND-VEN) TO T-VENDEUR(IND-VEN)
+                 END-PERFORM
+               WHEN '2'
+                 PERFORM VARYING IND-DATE FROM 1 BY 1 UNTIL IND-DATE > 5
+                   MOVE V-DATE(IND-DATE) TO T-DATE(IND-DATE)
+                 END-PERFORM
+               WHEN '3'
+                 MOVE V-MONTANT TO T-MONT(V-IND-VEN V-IND-DATE)
+             END-EVALUATE
+             READ FVENTES
+           END-PERFORM
+      *  LISTE PAR VENDEUR
+           PERFORM VARYING IND-VEN FROM 1 BY 1 UNTIL IND-VEN > 4
+             MOVE 0 TO WS-TOT
+             MOVE T-VENDEUR(IND-VEN) TO L2-VENDEUR
+             MOVE LIGNE2 TO EIMP
+             WRITE EIMP
+             PERFORM TEST-STAT-IMP
+      *      BOUCLE SUR LES 5 DATES
+             PERFORM VARYING IND-DATE FROM 1 BY 1 UNTIL IND-DATE > 5
+               MOVE T-DATE(IND-DATE)         TO L3-DATE
+               MOVE T-MONT(IND-VEN IND-DATE) TO L3-MONT
+               ADD  T-MONT(IND-VEN IND-DATE) TO WS-TOT
+               MOVE LIGNE3                   TO EIMP
+               WRITE EIMP
+               PERFORM TEST-STAT-IMP
+             END-PERFORM
+      *      FIN DU VENDEUR
+             MOVE 'TOTAL'                    TO L3-DATE
+             MOVE WS-TOT                     TO L3-MONT
+             ADD  WS-TOT                     TO WS-TOT-GEN
+             MOVE LIGNE3                     TO EIMP
+             WRITE EIMP
+             PERFORM TEST-STAT-IMP
+           END-PERFORM
+      *    IMPRESSION TOTAL GENERAL
+           MOVE 'TOTAL GENERAL'              TO LIGNE3
+           MOVE WS-TOT-GEN                   TO L3-MONT
+           MOVE LIGNE3                       TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+      * LISTE DES VENTES PAR DATE
+           MOVE SPACE TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+           MOVE SPACE TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+           MOVE 'LISTE DES VENTES PAR DATE' TO L1-TITRE
+           MOVE LIGNE1 TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+           MOVE 0 TO WS-TOT-GEN
+           MOVE SPACE TO LIGNE2
+      * DEBUT BOUCLE DATE
+           PERFORM VARYING IND-DATE FROM 1 BY 1 UNTIL IND-DATE > 5
+             MOVE 0                TO WS-TOT
+             MOVE T-DATE(IND-DATE) TO L2-DATE
+             MOVE LIGNE2           TO EIMP
+             WRITE EIMP
+             PERFORM TEST-STAT-IMP
+      * DEBUT BOUCLE VENDEUR
+             PERFORM VARYING IND-VEN FROM 1  BY 1 UNTIL IND-VEN > 4
+               MOVE T-VENDEUR(IND-VEN)       TO L4-VENDEUR
+               MOVE T-MONT(IND-VEN IND-DATE) TO L4-MONT
+               ADD  T-MONT(IND-VEN IND-DATE) TO WS-TOT
+               MOVE LIGNE4                   TO EIMP
+               WRITE EIMP
+               PERFORM TEST-STAT-IMP
+             END-PERFORM
+      * FIN BOUCLE DATE
+             MOVE 'TOTAL' TO L4-VENDEUR
+             MOVE WS-TOT  TO L4-MONT
+             ADD  WS-TOT  TO WS-TOT-GEN
+             MOVE LIGNE4  TO EIMP
+             WRITE EIMP
+             PERFORM TEST-STAT-IMP
+           END-PERFORM
+      *    IMPRESSION TOTAL GENERAL
+           MOVE 'TOTAL GENERAL'              TO LIGNE3
+           MOVE WS-TOT-GEN                   TO L3-MONT
+           MOVE LIGNE3                       TO EIMP
+           WRITE EIMP
+           PERFORM TEST-STAT-IMP
+      *    MOVE 'AA' TO DUMP
+      *    ADD 1 TO DUMP9
+           CLOSE IMP
+           PERFORM TEST-STAT-IMP
+           CLOSE FVENTES
+           PERFORM TEST-STAT-VEN
+           STOP RUN
+           .
+       TEST-STAT-VEN.
+           IF WS-VEN NOT = '00'
+             DISPLAY 'ERREUR FICHIER VENTES ' WS-VEN
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+       TEST-STAT-IMP.
+           IF WS-IMP NOT = '00'
+             DISPLAY 'ERREUR FICHIER IMPRESSION ' WS-IMP
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

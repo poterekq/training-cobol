@@ -1,0 +1,7 @@
+//API1P5   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00001000
+//*                                                                     00002000
+//* EXECUTION DU PROGRAMME ARITHMETIQUE                                 00003000
+//*                                                                     00004000
+//OPERATE  EXEC PGM=PROG05                                              00005000
+//STEPLIB  DD DSN=API1.COBOL.LOAD,DISP=SHR                              00006000
+//SYSOUT   DD SYSOUT=H                                                  00007000

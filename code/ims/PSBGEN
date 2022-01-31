@@ -1,0 +1,12 @@
+//API1PSB    JOB 'SDJ CREATE PSB',MSGCLASS=S,NOTIFY=&SYSUID,TIME=(,5)
+//*===================================================*
+//*           CREATION D'UN PSB DE CHARGEMENT         *
+//*           -------------------------------         *
+//* ====>  REMPLACER   01   PAR  NUMERO  DU GROUPE    *
+//*===================================================*
+//*
+//PROCV8 JCLLIB ORDER=IMS810.PROCLIB
+//STEP     EXEC PSBGEN,SOUT=S
+//C.SYSIN    DD DSN=API1.SOURCE.IMS(PSB010B),DISP=SHR
+/*
+//L.SYSLMOD DD  DSN=API1.IMS.PSBLIB(PSB010B),DISP=SHR

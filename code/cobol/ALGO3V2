@@ -1,0 +1,214 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. ALGO3.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 03 DECEMBRE 2021
+
+
+      * ---------------------------------
+      * ALGORITHME 3 - FUSION DE FICHIERS
+      * ---------------------------------
+
+      *
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CLIENT1 ASSIGN TO CLIENT1
+             FILE STATUS WS-C1.
+           SELECT CLIENT2 ASSIGN TO CLIENT2
+             FILE STATUS WS-C2.
+           SELECT CLIENTF ASSIGN TO CLIENTF
+             FILE STATUS WS-CF.
+
+      *
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD CLIENT1 RECORDING F.
+       01 ECLIENT1.
+         05 C1-ID         PIC 9(4).
+         05 C1-NOM-CLIENT PIC X(20).
+         05 FILLER        PIC X(56).
+       FD CLIENT2 RECORDING F.
+       01 ECLIENT2.
+         05 C2-ID         PIC 9(4).
+         05 C2-NOM-CLIENT PIC X(20).
+         05 FILLER        PIC X(56).
+       FD CLIENTF RECORDING F.
+       01 ECLIENTF PIC X(80).
+
+       WORKING-STORAGE SECTION.
+       77 WS-C1 PIC XX.
+       77 WS-C2 PIC XX.
+       77 WS-CF PIC XX.
+
+       77 C1-CPT PIC 9(4) VALUE 0.
+       77 C2-CPT PIC 9(4) VALUE 0.
+       77 CF-CPT PIC 9(4) VALUE 0.
+
+       77 C1-ID1 PIC 9(4) VALUE 0.
+       77 C1-ID2 PIC 9(4) VALUE 0.
+       77 C1-ID3 PIC 9(4) VALUE 0.
+       77 C2-ID1 PIC 9(4) VALUE 0.
+       77 C2-ID2 PIC 9(4) VALUE 0.
+       77 C2-ID3 PIC 9(4) VALUE 0.
+
+       77 C1-BUFFER PIC X(80).
+       77 C2-BUFFER PIC X(80).
+
+      *
+       PROCEDURE DIVISION.
+      * OUVRIR LES FICHIERS ET VERIFIER LEUR INTEGRITE
+           OPEN INPUT CLIENT1.
+           PERFORM TEST-STAT-C1.
+           OPEN INPUT CLIENT2.
+           PERFORM TEST-STAT-C2.
+           OPEN OUTPUT CLIENTF.
+           PERFORM TEST-STAT-CF.
+      * COMMENCER A LIRE LES FICHIERS C1 ET C2
+           PERFORM INITIALIZE-C1.
+           PERFORM INITIALIZE-C2.
+
+           PERFORM UNTIL WS-C1 = '10' OR WS-C2 = '10'
+             IF C1-ID2 < C2-ID2
+               PERFORM PROCESS-C1
+             ELSE
+               IF C1-ID2 = C2-ID2
+                 DISPLAY 'PRESENT DANS C1 ET C2: ' C1-ID2
+                 MOVE ECLIENT1 TO C1-BUFFER
+                 PERFORM SHIFT-RECORDS-C1
+                 READ CLIENT1
+                 IF WS-C1 NOT = '10'
+                   ADD 1 TO C1-CPT
+                   MOVE C1-ID TO C1-ID3
+                 END-IF
+                 MOVE ECLIENT2 TO C2-BUFFER
+                 PERFORM SHIFT-RECORDS-C2
+                 READ CLIENT2
+                 IF WS-C2 NOT = '10'
+                   ADD 1 TO C2-CPT
+                   MOVE C2-ID TO C2-ID3
+                 END-IF
+               ELSE
+                 PERFORM PROCESS-C2
+               END-IF
+             END-IF
+           END-PERFORM
+
+           PERFORM UNTIL WS-C1 = '10'
+             PERFORM PROCESS-C1
+           END-PERFORM
+
+           PERFORM UNTIL WS-C2 = '10'
+             PERFORM PROCESS-C2
+           END-PERFORM
+
+           CLOSE CLIENT1
+           PERFORM TEST-STAT-C1
+           CLOSE CLIENT2
+           PERFORM TEST-STAT-C2
+           CLOSE CLIENTF
+           PERFORM TEST-STAT-CF
+
+           DISPLAY ' '
+           DISPLAY '--- STATISTIQUES SUR LES ENREGISTREMENTS ---'
+           DISPLAY 'ENREGISTREMENTS C1: ' C1-CPT
+           DISPLAY 'ENREGISTREMENTS C2: ' C2-CPT
+           DISPLAY 'ENREGISTREMENTS CF: ' CF-CPT
+
+           STOP RUN.
+
+       SHIFT-RECORDS-C1.
+           MOVE C1-ID2 TO C1-ID1
+           MOVE C1-ID3 TO C1-ID2.
+
+       SHIFT-RECORDS-C2.
+           MOVE C2-ID2 TO C2-ID1
+           MOVE C2-ID3 TO C2-ID2.
+
+       PROCESS-C1.
+           IF C1-ID2 NOT = C1-ID1 AND C1-ID2 NOT = C1-ID3
+             WRITE ECLIENTF FROM C1-BUFFER
+             ADD 1 TO CF-CPT
+           ELSE
+             DISPLAY 'PLUSIEURS ' C1-ID2 ' DANS LE FICHIER C1!'
+           END-IF
+           MOVE ECLIENT1 TO C1-BUFFER
+           PERFORM SHIFT-RECORDS-C1
+           READ CLIENT1
+           PERFORM TEST-STAT-C1
+           IF WS-C1 NOT = '10'
+             MOVE C1-ID TO C1-ID3
+             ADD 1 TO C1-CPT
+           END-IF.
+
+       PROCESS-C2.
+           IF C2-ID2 NOT = C2-ID1 AND C2-ID2 NOT = C2-ID3
+             WRITE ECLIENTF FROM C2-BUFFER
+             ADD 1 TO CF-CPT
+           ELSE
+             DISPLAY 'PLUSIEURS ' C2-ID2 ' DANS LE FICHIER C2!'
+           END-IF
+           MOVE ECLIENT2 TO C2-BUFFER
+           PERFORM SHIFT-RECORDS-C2
+           READ CLIENT2
+           PERFORM TEST-STAT-C2
+           IF WS-C2 NOT = '10'
+             MOVE C2-ID TO C2-ID3
+             ADD 1 TO C2-CPT
+           END-IF.
+
+       INITIALIZE-C1.
+           READ CLIENT1.
+           PERFORM TEST-STAT-C1.
+           IF WS-C1 NOT = '10'
+             ADD 1 TO C1-CPT
+             MOVE C1-ID TO C1-ID2
+             MOVE ECLIENT1 TO C1-BUFFER
+             READ CLIENT1
+             PERFORM TEST-STAT-C1
+             IF WS-C1 NOT = '10'
+               ADD 1 TO C1-CPT
+               MOVE C1-ID TO C1-ID3
+             END-IF
+           END-IF.
+
+       INITIALIZE-C2.
+           READ CLIENT2.
+           PERFORM TEST-STAT-C2.
+           IF WS-C2 NOT = '10'
+             ADD 1 TO C2-CPT
+             MOVE C2-ID TO C2-ID2
+             MOVE ECLIENT2 TO C2-BUFFER
+             READ CLIENT2
+             PERFORM TEST-STAT-C2
+             IF WS-C2 NOT = '10'
+               ADD 1 TO C2-CPT
+               MOVE C2-ID TO C2-ID3
+             END-IF
+           END-IF.
+
+       TEST-STAT-CF.
+           IF WS-CF NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENTF - ' WS-CF
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+
+       TEST-STAT-C1.
+           IF WS-C1 NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENT1 - ' WS-C1
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+
+       TEST-STAT-C2.
+           IF WS-C2 NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENT2 - ' WS-C2
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

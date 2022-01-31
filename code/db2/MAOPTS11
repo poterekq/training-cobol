@@ -1,0 +1,188 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS11.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 14 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STRUCTURE DES TABLES DB2 ---------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE ASSURES3
+           END-EXEC
+
+      *STRUCTURES POUR SQLCA ------------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *ZONES D'ECHANGE ------------------------------------------------
+
+       01 WS-LIGNE.
+          02 WS-MAT            PIC X(6).
+          02 WS-NOMPRE         PIC X(20).
+          02 WS-RUE            PIC X(18).
+          02 WS-CP             PIC X(5).
+          02 WS-VILLE          PIC X(12).
+          02 WS-VEHICU         PIC X(1).
+          02 WS-PRIME          PIC S9(4)V9(2) USAGE COMP-3.
+          02 WS-BM             PIC X(1).
+          02 WS-TAUX           PIC S9(4) USAGE COMP.
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-LIGNE.
+          02 L-MAT             PIC X(6).
+          02 L-NOMPRE          PIC X(20).
+          02 L-RUE             PIC X(18).
+          02 L-CP              PIC X(5).
+          02 L-VILLE           PIC X(12).
+          02 L-VEHICU          PIC X(1).
+          02 L-PRIME           PIC S9(4)V9(2) USAGE COMP-3.
+          02 L-BM              PIC X(1).
+          02 L-TAUX            PIC S9(4) USAGE COMP.
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      */////////////////////////////////
+       PROCEDURE DIVISION USING L-LIGNE.
+      */////////////////////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-TRAITER
+           .
+
+
+      *BLOCS 100S - TRAITER LES DONNEES
+      *--------------------------------
+
+       100-TRAITER.
+           PERFORM 110-ALIMENTER-ZONE-ECHANGE
+           PERFORM 120-ECRIRE-ERREURS
+           DISPLAY SQLCODE
+           .
+
+
+       110-ALIMENTER-ZONE-ECHANGE.
+           MOVE L-LIGNE TO WS-LIGNE
+           .
+
+
+       120-ECRIRE-ERREURS.
+      *ECRIRE LES ERREURS DANS LA TABLE ASSURES3 DB2
+           EXEC SQL
+              INSERT INTO API1.ASSURES3
+                 VALUES (
+                            :WS-MAT,
+                            :WS-NOMPRE,
+                            :WS-RUE,
+                            :WS-CP,
+                            :WS-VILLE,
+                            :WS-VEHICU,
+                            :WS-PRIME,
+                            :WS-BM,
+                            :WS-TAUX
+                        )
+           END-EXEC
+           .
+
+
+      *BLOCS DB2 - GESTION DB2
+      *-----------------------
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           PERFORM FIN-PROGRAMME
+           .

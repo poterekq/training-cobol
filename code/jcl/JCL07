@@ -1,0 +1,11 @@
+//API1J7   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*
+//*-----------------------------------------------------------*         00000230
+//*     COPIER UN MEMBRE D'UNE LIBRAIRIE DANS UN SEQUENTIEL   *         00000230
+//*-----------------------------------------------------------*
+//*
+//COPYF    EXEC  PGM=IEBGENER
+//SYSUT1   DD    DSN=API1.SOURCE.JCL(LIVRES),DISP=SHR
+//SYSUT2   DD    SYSOUT=H
+//SYSPRINT DD    SYSOUT=H
+//SYSIN    DD    *

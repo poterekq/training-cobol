@@ -1,0 +1,14 @@
+//API1J2   JOB CLASS=A,MSGCLASS=H,NOTIFY=&SYSUID,TIME=(,1)              00010000
+//*
+//*--------------------------------------------------------*            00000230
+//*     CREATION D'UNE LIBRAIRIE                           *            00000230
+//*--------------------------------------------------------*
+//*
+//DELIB    EXEC  PGM=IEFBR14
+//FI1      DD    DSN=API1.TEST.LIBRARY,DISP=(MOD,DELETE,DELETE),
+// SPACE=(TRK,(3,1)),LRECL=80,BLKSIZE=3200,RECFM=FB
+//CRELIB   EXEC  PGM=IEFBR14
+//FI1      DD    DSN=API1.TEST.LIBRARY,DISP=(NEW,CATLG,DELETE),
+// SPACE=(TRK,(3,1,20)),LRECL=80,BLKSIZE=3200,RECFM=FB
+//SYSIN    DD    *
+//

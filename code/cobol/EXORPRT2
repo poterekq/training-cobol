@@ -1,0 +1,197 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EXORPRT2.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 08 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT PGM ASSIGN TO PGM
+             FILE STATUS WS-PGM.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD PGM RECORDING F.
+       01 EPGM PIC X(80).
+
+       WORKING-STORAGE SECTION.
+      * STATUT DE FICHIER
+       77 WS-PGM       PIC XX.
+
+      * PARAMETRES UTILISATEUR
+       01 WS-PARM.
+         02 PARM-FNAME PIC X(44) VALUE SPACES.
+         02 PARM-USER  PIC X(4) VALUE SPACES.
+
+      * COMPTEURS
+       77 CPT-LIGNES   PIC 9(4) VALUE 0.
+       77 CPT-COMMENT  PIC 9(4) VALUE 0.
+       77 CPT-EMPTY    PIC 9(4) VALUE 0.
+
+      * STATISTIQUES
+       77 PERC-COMMENT PIC 99V99 VALUE 0.
+       77 PERC-EMPTY   PIC 99V99 VALUE 0.
+
+      * RAPPORT
+       01 HEADER.
+         02 H-USER     PIC X(4).
+         02 FILLER     PIC X(63).
+         02 H-DATE.
+           03 FILLER VALUE 'LE ' PIC XXX.
+           03 H-DATE-J           PIC XX.
+           03 FILLER VALUE '/'   PIC X.
+           03 H-DATE-M           PIC XX.
+           03 FILLER VALUE '/'   PIC X.
+           03 H-DATE-A           PIC X(4).
+
+       01 HORODATAGE.
+         02 FILLER               PIC X(75).
+         02 H-HEURE              PIC XX.
+         02 FILLER VALUE ':'     PIC X.
+         02 H-MIN                PIC XX.
+
+       01 TITRE.
+         02 FILLER    PIC X(5).
+         02 T-PREFIXE PIC X(27) VALUE 'STATISTIQUES DU PROGRAMME: '.
+         02 T-FNAME   PIC X(44).
+         02 FILLER    PIC X(4).
+
+       01 STATS.
+         02 FILLER             PIC X(10).
+         02 S-LABEL            PIC X(42).
+         02 FILLER VALUE ' : ' PIC XXX.
+         02 S-VALEUR           PIC ZZZ9.
+         02 S-SIGNE            PIC X.
+         02 FILLER             PIC X(20).
+
+       LINKAGE SECTION.
+       01 PARM-FIELD.
+         02 PARM-LENGTH PIC S9(4) COMP.
+         02 PARM-DATA   PIC X(48).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING PARM-FIELD.
+           PERFORM BEGIN-PGM
+      * PREPARER L'ENVIRONNEMENT
+           PERFORM RECUPERER-PARM
+           PERFORM RECUPERER-HEURE-DATE
+      * ECRIRE LES PREMIERS ELEMENTS DU RAPPORT
+           PERFORM FAIRE-HEADER
+           PERFORM FAIRE-TITRE
+
+           PERFORM TRAITER-FICHIER UNTIL WS-PGM = '10'
+
+      * CALCULER ET ECRIRE LES STATISTIQUES SUR LE FICHIER
+           PERFORM CALCULER-POURCENTAGES
+           PERFORM FAIRE-STATS
+
+           PERFORM END-PGM
+           GOBACK
+           .
+
+       BEGIN-PGM.
+      * OUVRIR LE FICHIER ET TESTER SON INTEGRITE
+           OPEN INPUT PGM
+           PERFORM TEST-STAT-PGM
+           READ PGM
+           .
+
+       RECUPERER-PARM.
+      * DEPLACER LES PARAMETRES DANS LES ZONES CORRESPONDANTES
+           UNSTRING PARM-FIELD
+             DELIMITED BY ','
+             INTO PARM-FNAME PARM-USER
+           END-UNSTRING
+           .
+
+       RECUPERER-HEURE-DATE.
+      * ASSIGNER L'ENSEMBLE DES COMPOSANTES D'UNE DATE à DES VARIABLES
+           UNSTRING FUNCTION CURRENT-DATE(1:12)
+             INTO H-DATE-A H-DATE-M H-DATE-J H-HEURE H-MIN
+           END-UNSTRING
+           .
+
+       FAIRE-HEADER.
+      * FORMATER ET AFFICHER L'EN-TETE DU RAPPORT
+           MOVE PARM-USER TO H-USER
+           DISPLAY HEADER
+           DISPLAY HORODATAGE
+           DISPLAY ' '
+           .
+
+       FAIRE-TITRE.
+      * FORMATER ET AFFICHER LE TITRE DU RAPPORT
+           MOVE PARM-FNAME TO T-FNAME
+           DISPLAY TITRE
+           MOVE ALL '-' TO T-PREFIXE
+           MOVE SPACES TO T-FNAME
+           DISPLAY TITRE
+           DISPLAY ' '
+           .
+
+       TRAITER-FICHIER.
+      * ITERATION SUR LE FICHIER D'ENTREE ET MISE A JOUR DES COMPTEURS
+           PERFORM TEST-STAT-PGM
+           ADD 1 TO CPT-LIGNES
+           EVALUATE TRUE
+             WHEN EPGM(7:1)  = '*'
+               ADD 1 TO CPT-COMMENT
+             WHEN EPGM = SPACES
+               ADD 1 TO CPT-EMPTY
+           END-EVALUATE
+           READ PGM
+           .
+
+       CALCULER-POURCENTAGES.
+      * CALCUL DES POURCENTAGES DE LIGNES VIDES ET COMMENTAIRES
+           COMPUTE PERC-COMMENT = CPT-COMMENT / CPT-LIGNES * 100
+           COMPUTE PERC-EMPTY = CPT-EMPTY / CPT-LIGNES * 100
+           .
+
+       FAIRE-STATS.
+      * AFFICHER LES LIGNES DE STATISTIQUES DANS LE RAPPORT
+           MOVE 'NOMBRE DE LIGNES DU PROGRAMME' TO S-LABEL
+           MOVE CPT-LIGNES TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'NOMBRE DE LIGNES EN COMMENTAIRE' TO S-LABEL
+           MOVE CPT-COMMENT TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'NOMBRE DE LIGNES BLANCHES' TO S-LABEL
+           MOVE CPT-EMPTY TO S-VALEUR
+           DISPLAY STATS
+           MOVE '%' TO S-SIGNE
+           MOVE 'POURCENTAGE DE COMMENTAIRES' TO S-LABEL
+           MOVE PERC-COMMENT TO S-VALEUR
+           DISPLAY STATS
+           MOVE 'POURCENTAGE DE LIGNES BLANCHES' TO S-LABEL
+           MOVE PERC-EMPTY TO S-VALEUR
+           DISPLAY STATS
+           .
+
+       END-PGM.
+      * FERMER LES FICHIERS UTILISES AVANT FIN DU PROGRAMME
+           CLOSE PGM
+           PERFORM TEST-STAT-PGM
+           .
+
+       TEST-STAT-PGM.
+      * TESTER L'INTEGRITE D'UN ENREGISTREMENT
+           IF WS-PGM NOT = '00'
+             DISPLAY 'ERREUR FICHIER PGM: ' WS-PGM
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .

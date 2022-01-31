@@ -1,0 +1,71 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * RECUPERE LES LABELS DES MESSAGES D'ERREUR A PARTIR D'UN CODE,
+      * DEPUIS UNE TABLE STOCKEE DANS UN FICHIER KSDS
+
+       PROGRAM-ID. MAJASLB.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 16 DECEMBRE 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT MESS ASSIGN TO KSDSMESS
+             ORGANIZATION IS INDEXED
+             ACCESS MODE IS RANDOM
+             RECORD KEY IS MESS-CODE
+             FILE STATUS WS-FS-MESS.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD MESS.
+       01 EMESS.
+         02 MESS-CODE  PIC XXX.
+         02 MESS-LABEL PIC X(60).
+         02 FILLER     PIC X(17).
+
+       WORKING-STORAGE SECTION.
+       77 WS-FS-MESS PIC XX.
+
+       LINKAGE SECTION.
+       01 LS-CODE  PIC XXX.
+       01 LS-LABEL PIC X(60).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING LS-CODE LS-LABEL.
+           OPEN INPUT MESS
+           PERFORM FST-MESS
+           MOVE LS-CODE TO MESS-CODE
+           READ MESS
+           MOVE MESS-LABEL TO LS-LABEL
+           CLOSE MESS
+           GOBACK
+           .
+
+       FST-MESS.
+           IF WS-FS-MESS NOT = '00'
+             DISPLAY 'ERREUR FICHIER MESS: ' WS-FS-MESS
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .

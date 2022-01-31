@@ -1,0 +1,27 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG04.
+      * -----------------
+      * TESTER L'EVALUATE
+      * -----------------
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77  RECEIPT PIC X.
+       PROCEDURE DIVISION.
+           DISPLAY 'RECEIPT=' RECEIPT
+           ACCEPT RECEIPT
+           PERFORM UNTIL RECEIPT = SPACE
+             EVALUATE RECEIPT
+               WHEN '0'
+                 DISPLAY 'IL ETAIT UNE FOIS'
+               WHEN '1'
+               WHEN '2'
+                 DISPLAY ' ET LA SUITE'
+               WHEN '3'
+                 DISPLAY 'C''EST LA FIN'
+               WHEN OTHER
+                 DISPLAY 'TOOTSIE LOO'
+             END-EVALUATE
+             ACCEPT RECEIPT
+           END-PERFORM
+           STOP RUN
+           .

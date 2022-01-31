@@ -1,0 +1,328 @@
+      CBL DYNAM
+
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:       MAOPTP30 - MISE A JOUR DES ASSURES AVEC ACCESSEURS
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTP30.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 17 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *ACCESSEURS ----------------------------------------------------
+
+       01 ACS.
+          02 ACS-D             PIC X(8) VALUE 'MAOPTS3D'.
+          02 ACS-V             PIC X(8) VALUE 'MAOPTS3V'.
+
+      *STRUCTURES RELATIVES AUX FICHIERS -----------------------------
+
+       01 WS-NOMS.
+          02 NOM-ASS           PIC X(8) VALUE 'ASSURES '.
+          02 NOM-MVT           PIC X(8) VALUE 'MVT     '.
+
+      * CODES RETOUR UTILITAIRES -------------------------------------
+
+       01 WS-INVL-CR.
+      *   FS - VSAM (23) DB2 (+100)
+          02 CR-UNEXISTING-KEY  PIC 99 VALUE 01.
+      *   FS - VSAM (22) DB2 (-803)
+          02 CR-DUPLICATE-KEY   PIC 99 VALUE 02.
+
+      *STRUCTURES PASSEES AUX ACCESSEURS -----------------------------
+
+       01 WS-PARMS VALUE LOW-VALUES.
+          02 ID-ACS            PIC X.
+          02 NOM-FICHIER       PIC X(8).
+          02 CODE-FONCTION     PIC 99.
+          02 ENREGISTREMENT.
+             COPY CFMVTSE.
+          02 CODE-RETOUR       PIC 99.
+          02 FILLER            PIC X(128).
+
+
+       LINKAGE SECTION.
+      *----------------
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *///////////////////
+       PROCEDURE DIVISION.
+      *///////////////////
+
+           PERFORM 0000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 0000S - RACINE DU PROGRAMME
+      *---------------------------------
+
+       0000-RACINE.
+           PERFORM 1000-DEBUTER
+           PERFORM 2000-TRAITER
+           PERFORM 3000-TERMINER
+           .
+
+
+      *BLOCS 1000S - DEBUTER LE PROGRAMME
+      *----------------------------------
+
+       1000-DEBUTER.
+           PERFORM 1100-DEFINIR-ACS-ASS
+           PERFORM 1200-OUVRIR-FICHIERS
+           .
+
+
+       1100-DEFINIR-ACS-ASS.
+           ACCEPT ID-ACS
+      D    DISPLAY 'ÝMAOPTP30¨ ID-ACS: ' ID-ACS
+           .
+
+
+       1200-OUVRIR-FICHIERS.
+      *    OUVRIR ASS EN I-O
+           MOVE 03 TO CODE-FONCTION
+           PERFORM 1210-OUVRIR-ASS
+      *    OUVRIR MVT EN INPUT
+           MOVE 01 TO CODE-FONCTION
+           PERFORM 1220-OUVRIR-MVT
+           .
+
+
+       1210-OUVRIR-ASS.
+           MOVE NOM-ASS TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           PERFORM EVALUER-CR-00
+           .
+
+
+       1220-OUVRIR-MVT.
+           MOVE NOM-MVT TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           PERFORM EVALUER-CR-00
+           .
+
+
+      *BLOCS 2000S - TRAITER LES DONNEES
+      *---------------------------------
+
+       2000-TRAITER.
+           PERFORM 2100-METTRE-A-JOUR
+           .
+
+
+       2100-METTRE-A-JOUR.
+           PERFORM 2110-LIRE-MVT
+           PERFORM UNTIL CODE-RETOUR = 04
+              PERFORM EVALUER-CR-00
+      *       DISPLAY 'ÝMAOPTP30¨ MAT-MVT: ' MAT-MVT
+              PERFORM 2120-TRAITER-CODE-MVT
+              PERFORM 2110-LIRE-MVT
+           END-PERFORM
+           .
+
+
+       2110-LIRE-MVT.
+           MOVE 06 TO CODE-FONCTION
+           MOVE NOM-MVT TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           .
+
+
+       2120-TRAITER-CODE-MVT.
+           EVALUATE TYPE-MVT
+              WHEN 'C' PERFORM 2121-CREER-ASS
+              WHEN 'M' PERFORM 2122-MODIFIER-ASS
+              WHEN 'S' PERFORM 2123-SUPPRIMER-ASS
+              WHEN OTHER PERFORM INVL-TYPE-MOUVEMENT
+           END-EVALUATE
+           .
+
+
+       2121-CREER-ASS.
+           MOVE 09 TO CODE-FONCTION
+           MOVE NOM-ASS TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           IF CODE-RETOUR = CR-DUPLICATE-KEY
+              PERFORM INVL-CREATION
+           END-IF
+           .
+
+
+       2122-MODIFIER-ASS.
+           MOVE 07 TO CODE-FONCTION
+           MOVE NOM-ASS TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           IF CODE-RETOUR = CR-UNEXISTING-KEY
+              PERFORM INVL-MODIFICATION
+           END-IF
+           .
+
+
+       2123-SUPPRIMER-ASS.
+           MOVE 08 TO CODE-FONCTION
+           MOVE NOM-ASS TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           IF CODE-RETOUR = CR-UNEXISTING-KEY
+              PERFORM INVL-SUPPRESSION
+           END-IF
+           .
+
+
+       INVL-TYPE-MOUVEMENT.
+      D    DISPLAY 'ÝMAOPTP30¨ ' MAT-MVT ' - TYPE-MVT INVALIDE'
+           .
+
+
+       INVL-CREATION.
+      D    DISPLAY 'ÝMAOPTP30¨ ' MAT-MVT ' - CREATION INVALIDE'
+           .
+
+
+       INVL-MODIFICATION.
+      D    DISPLAY 'ÝMAOPTP30¨ ' MAT-MVT ' - MODIFICATION INVALIDE'
+           .
+
+
+       INVL-SUPPRESSION.
+      D    DISPLAY 'ÝMAOPTP30¨ ' MAT-MVT ' - SUPPRESSION INVALIDE'
+           .
+
+
+      *BLOCS 3000S - TERMINER LE PROGRAMME
+      *-----------------------------------
+
+       3000-TERMINER.
+           PERFORM 3100-FERMER-FICHIERS
+           .
+
+
+       3100-FERMER-FICHIERS.
+           MOVE 05 TO CODE-FONCTION
+           PERFORM 3110-FERMER-ASS
+           PERFORM 3120-FERMER-MVT
+           .
+
+
+       3110-FERMER-ASS.
+           MOVE NOM-ASS TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           PERFORM EVALUER-CR-00
+           .
+
+
+       3120-FERMER-MVT.
+           MOVE NOM-MVT TO NOM-FICHIER
+           PERFORM APPELER-ACS
+           PERFORM EVALUER-CR-00
+           .
+
+
+      *BLOCS APPELER - APPELER LES ACCESSEURS
+      *--------------------------------------
+
+       APPELER-ACS.
+      *    APPELER L'ACCESSEUR CORRESPONDANT AU TYPE SOUHAITE ID-ACS
+      *    VALEURS POSSIBLES POUR ID-ACS :
+      *       V - MODE VSAM
+      *       D - MODE DB2
+           EVALUATE ID-ACS
+              WHEN 'V'
+                 CALL ACS-V USING WS-PARMS
+              WHEN 'D'
+                 CALL ACS-D USING WS-PARMS
+              WHEN OTHER
+                 PERFORM EVALUER-ID-ACS
+           END-EVALUATE
+           .
+
+
+      *BLOCS EVALUER - VERIFICATION DES STRUCTURES
+      *-------------------------------------------
+
+       EVALUER-CR-00.
+           IF CODE-RETOUR NOT = 00
+              DISPLAY 'ÝMAOPTP30¨ CODE RETOUR INVALIDE!'
+              DISPLAY '  VALEUR ACTUELLE: ' CODE-RETOUR '.'
+              DISPLAY '  VALEUR ATTENDUE: 00.'
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .
+
+
+       EVALUER-ID-ACS.
+           IF ID-ACS NOT = 'V' AND 'D'
+              DISPLAY 'ÝMAOPTP30¨ ACCESSEUR DEMANDE INVALIDE!'
+              DISPLAY '  VALEUR ACTUELLE: ' ID-ACS '.'
+              DISPLAY '  VALEURS ATTENDUES: V, D.'
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

@@ -1,0 +1,76 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG07.
+      * -------------------------------
+      * ECRITURE D'UN FICHIER SEQUENTIEL
+      * -------------------------------
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT FIC1 ASSIGN DDFIC1 FILE STATUS WS-FIC1.
+           SELECT FIC2 ASSIGN DDFIC2 FILE STATUS WS-FIC2.
+       DATA DIVISION.
+       FILE SECTION.
+       FD FIC1 RECORDING F.
+       01 EFIC1.
+       COPY COPYASS.
+         05            PIC X(9).
+       FD FIC2 RECORDING F.
+       01 EFIC2        PIC X(100).
+       WORKING-STORAGE SECTION.
+       77 WS-FIC1 PIC XX.
+       77 WS-FIC2 PIC XX.
+       01 LIGNE1.
+         05              PIC X(25).
+         05 VALUE 'LISTE DES ASSURES' PIC X(17).
+       01 LIGNE2.
+         05 VALUE '  NOM   : ' PIC X(10).
+         05 L2-NOM             PIC X(20).
+         05 VALUE '  RUE   : ' PIC X(10).
+         05 L2-RUE             PIC X(18).
+         05 VALUE '  VILLE : ' PIC X(10).
+         05 L2-VILLE           PIC X(12).
+         05 VALUE '  CP    : ' PIC X(10).
+         05 L2-CP              PIC X(5).
+       PROCEDURE DIVISION.
+           OPEN INPUT FIC1
+           PERFORM TEST-STAT-FIC1
+           OPEN OUTPUT FIC2
+           PERFORM TEST-STAT-FIC2
+           MOVE LIGNE1    TO EFIC2
+           WRITE EFIC2
+           PERFORM TEST-STAT-FIC2
+           MOVE SPACE TO EFIC2
+           WRITE EFIC2
+           PERFORM TEST-STAT-FIC2
+           READ FIC1
+           PERFORM UNTIL WS-FIC1 = '10'
+             PERFORM TEST-STAT-FIC1
+             MOVE ASS-NOM   TO L2-NOM
+             MOVE ASS-RUE   TO L2-RUE
+             MOVE ASS-CP    TO L2-CP
+             MOVE ASS-VILLE TO L2-VILLE
+             MOVE LIGNE2    TO EFIC2
+             WRITE EFIC2
+             PERFORM TEST-STAT-FIC2
+             READ FIC1
+           END-PERFORM
+           CLOSE FIC2
+           PERFORM TEST-STAT-FIC2
+           CLOSE FIC1
+           PERFORM TEST-STAT-FIC1
+           STOP RUN
+           .
+       TEST-STAT-FIC1.
+           IF WS-FIC1 NOT = '00'
+             DISPLAY 'ERREUR FICHIER ASSURE ' WS-FIC1
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+       TEST-STAT-FIC2.
+           IF WS-FIC2 NOT = '00'
+             DISPLAY 'ERREUR FICHIER LISTE ' WS-FIC2
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

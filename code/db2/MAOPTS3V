@@ -1,0 +1,325 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:       MAOPTS3V - ACCESSEUR DE FICHIERS VSAM
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS3V.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 17 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT ASS ASSIGN TO ASS
+              ORGANIZATION IS INDEXED
+              ACCESS MODE IS RANDOM
+              RECORD KEY IS MAT-X3 OF EASS
+              FILE STATUS WS-FS
+              .
+
+           SELECT MVT ASSIGN TO AS-MVT
+              FILE STATUS WS-FS
+              .
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD ASS.
+       01 EASS.
+          COPY CASSURE3.
+
+       FD MVT.
+       01 EMVT.
+          COPY CFMVTSE.
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      * STATUT DES FICHIERS ------------------------------------------
+
+       01 WS-FS                PIC 99.
+          88 FS-SUPPORTE       VALUES 00, 10, 22, 23,
+                                      91 THRU 96, 98, 99.
+
+       01 WS-NOMS.
+          02 NOM-ASS           PIC X(8) VALUE 'ASSURES '.
+          02 NOM-MVT           PIC X(8) VALUE 'MVT     '.
+
+      * VARIABLES TEMPORAIRES ----------------------------------------
+
+       01 TMP-NOM-FICHIER      PIC X(8) VALUE LOW-VALUE.
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-PARMS.
+          02 USERINPUT.
+             03 ID-ACS         PIC X.
+             03 NOM-FICHIER    PIC X(8).
+             03 CODE-FONCTION  PIC 99.
+          02 ENREGISTREMENT.
+             COPY CASSURE3 REPLACING ==02== BY ==03==.
+          02 CODE-RETOUR       PIC 99.
+      *      00 OPERATION COMPLETED SUCCESSFULLY
+      *      10 END OF FILE ENCOUNTERED
+      *      22 INVALID KEY - DUPLICATE KEY FOUND
+      *      23 INVALID KEY - NO RECORD FOUND
+      *      91 PASSWORD OR AUTHORIZATION FAILED
+      *      92 LOGIC ERROR
+      *      93 RESOURCE MAY NOT BE AVAILABLE
+      *      94 SEQUENTIAL RECORD UNAVAILABLE OR CONCURRENT OPEN ERROR
+      *      95 FILE INFORMATION INVALID OR INCOMPLETE
+      *      96 NO DD STATEMENT FOR THE FILE
+      *      97 OPEN SUCCESSFUL AND FILE INTEGRITY VERIFIED
+      *      98 FILE IS LOCKED - OPEN FAILED
+      *      99 RECORD IS LOCKED - RECORD ACCESS FAILED
+             88 VSAM-00        VALUE 00.
+             88 VSAM-10        VALUE 04.
+             88 VSAM-22        VALUE 02.
+             88 VSAM-23        VALUE 01.
+             88 VSAM-91        VALUE 03.
+             88 VSAM-92        VALUE 03.
+             88 VSAM-93        VALUE 03.
+             88 VSAM-94        VALUE 03.
+             88 VSAM-95        VALUE 03.
+             88 VSAM-96        VALUE 03.
+             88 VSAM-97        VALUE 03.
+             88 VSAM-98        VALUE 03.
+             88 VSAM-99        VALUE 03.
+          02 FILLER            PIC X(128).
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      */////////////////////////////////
+       PROCEDURE DIVISION USING L-PARMS.
+      */////////////////////////////////
+
+           PERFORM 0000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 0000S - OPERATIONS DU SOUS-PROGRAMME
+      *------------------------------------------
+
+       0000-RACINE.
+           PERFORM 0100-EVALUER-NOM-FICHIER
+           PERFORM 0200-TRAITER-FICHIERS
+           .
+
+
+       0100-EVALUER-NOM-FICHIER.
+           EVALUATE NOM-FICHIER
+              WHEN NOM-ASS MOVE NOM-ASS TO TMP-NOM-FICHIER
+              WHEN NOM-MVT MOVE NOM-MVT TO TMP-NOM-FICHIER
+              WHEN OTHER PERFORM 0A00-NOM-FICHIER-INVALIDE
+           END-EVALUATE
+           .
+
+       0200-TRAITER-FICHIERS.
+           EVALUATE NOM-FICHIER
+              WHEN NOM-ASS PERFORM 0210-TRAITER-ASS
+              WHEN NOM-MVT PERFORM 0220-TRAITER-MVT
+              WHEN OTHER PERFORM 0A00-NOM-FICHIER-INVALIDE
+           END-EVALUATE
+           PERFORM FST-TESTER
+           .
+
+      *PARAGRAPHES DE TRAITEMENT POUR LE FICHIER KSDS ASS
+
+       0210-TRAITER-ASS.
+           MOVE MAT-X3 OF ENREGISTREMENT TO MAT-X3 OF EASS
+           EVALUATE CODE-FONCTION
+              WHEN 01 PERFORM 0211-OPEN-INPUT-ASS
+              WHEN 02 PERFORM 0212-OPEN-OUTPUT-ASS
+              WHEN 03 PERFORM 0213-OPEN-IO-ASS
+              WHEN 05 PERFORM 0215-CLOSE-ASS
+              WHEN 06 PERFORM 0216-READ-ASS
+              WHEN 07 PERFORM 0217-REWRITE-ASS
+              WHEN 08 PERFORM 0218-DELETE-ASS
+              WHEN 09 PERFORM 0219-WRITE-ASS
+              WHEN OTHER
+                 PERFORM 0B00-CODE-FONCTION-INVALIDE
+                 DISPLAY '  VALEURS POSSIBLES: 01 A 03, 05 A 09.'
+           END-EVALUATE
+           .
+
+
+       0211-OPEN-INPUT-ASS.
+           OPEN INPUT ASS
+           .
+
+
+       0212-OPEN-OUTPUT-ASS.
+           OPEN OUTPUT ASS
+           .
+
+
+       0213-OPEN-IO-ASS.
+           OPEN I-O ASS
+           .
+
+
+       0215-CLOSE-ASS.
+           CLOSE ASS
+           .
+
+
+       0216-READ-ASS.
+           READ ASS
+              INTO ENREGISTREMENT
+              INVALID KEY
+                 SET VSAM-23 TO TRUE
+           END-READ
+           .
+
+
+       0217-REWRITE-ASS.
+           REWRITE EASS
+              FROM ENREGISTREMENT
+              INVALID KEY
+                 SET VSAM-23 TO TRUE
+           END-REWRITE
+           .
+
+
+       0218-DELETE-ASS.
+           DELETE ASS
+              INVALID KEY
+                 SET VSAM-23 TO TRUE
+           END-DELETE
+           .
+
+
+       0219-WRITE-ASS.
+           WRITE EASS
+              FROM ENREGISTREMENT
+              INVALID KEY
+                 SET VSAM-22 TO TRUE
+           END-WRITE
+           .
+
+      *PARAGRAPHES DE TRAITEMENT POUR LE FICHIER ESDS MVT
+
+       0220-TRAITER-MVT.
+           EVALUATE CODE-FONCTION
+              WHEN 01 PERFORM 0221-OPEN-INPUT-MVT
+              WHEN 05 PERFORM 0225-CLOSE-MVT
+              WHEN 06 PERFORM 0226-READ-MVT
+              WHEN OTHER
+                 PERFORM 0B00-CODE-FONCTION-INVALIDE
+                 DISPLAY '  VALEURS POSSIBLES: 01, 05, 06.'
+           END-EVALUATE
+           .
+
+
+       0221-OPEN-INPUT-MVT.
+           OPEN INPUT MVT
+           .
+
+
+       0225-CLOSE-MVT.
+           CLOSE MVT
+           .
+
+
+       0226-READ-MVT.
+           READ MVT INTO ENREGISTREMENT
+           .
+
+      *GESTION DES PARAMETRES INVALIDES
+
+       0A00-NOM-FICHIER-INVALIDE.
+           DISPLAY 'ÝMAOPTS3V¨ NOM-FICHIER INVALIDE!'
+           DISPLAY '  VALEUR ACTUELLE: ' NOM-FICHIER '.'
+           MOVE 16 TO RETURN-CODE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+       0B00-CODE-FONCTION-INVALIDE.
+           DISPLAY 'ÝMAOPTS3V¨ CODE-FONCTION INVALIDE!'
+           DISPLAY '  VALEUR ACTUELLE: ' CODE-FONCTION '.'
+           MOVE 16 TO RETURN-CODE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      *BLOCS FST - TESTER LE STATUT DES FICHIERS
+      *-----------------------------------------
+
+       FST-TESTER.
+           EVALUATE WS-FS
+              WHEN 00
+                 SET VSAM-00 TO TRUE
+              WHEN 10
+                 SET VSAM-10 TO TRUE
+              WHEN OTHER
+                 IF NOT FS-SUPPORTE
+                    DISPLAY 'ÝMAOPTS3V¨ ERREUR SUR LE FICHIER: '        FS
+      -    TMP-NOM-FICHIER ' (' WS-FS ').'
+                    MOVE 16 TO RETURN-CODE
+                    PERFORM FIN-PROGRAMME
+                 ELSE
+                    CONTINUE
+                 END-IF
+           END-EVALUATE
+           .

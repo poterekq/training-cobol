@@ -1,0 +1,22 @@
+//API1DEF JOB 'SDJ DEFINE CLUSTER',MSGCLASS=H,MSGLEVEL=(1,1),
+//        TIME=(,6),NOTIFY=&SYSUID
+//*======================================================*
+//*   DEFINITION DU FICHIER CONTENANT LA BASE DBDI10XX   *
+//*     CHANGER API1 PAR VOTRE USER_ID                   *
+//*     CHANGER DBDI10XX PAR VOTRE NOM DE BASE           *
+//*======================================================*
+//STEP1   EXEC PGM=IDCAMS
+//SYSPRINT DD SYSOUT=*
+//SYSIN    DD *
+ DELETE API1.IMS.DBM010A
+ DEFINE CLUSTER -
+ (NAME(API1.IMS.DBM010A) -
+ NONINDEXED -
+ SHR(3 3) -
+ VOL(APIWK3) -
+ TRK(5) -
+ RECSZ(4089 4089) -
+ CISZ(4096)) -
+ DATA (NAME(API1.IMS.DBM010A.DATA))
+/*
+//*

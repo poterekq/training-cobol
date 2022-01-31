@@ -1,0 +1,118 @@
+       IDENTIFICATION DIVISION.
+
+      * DESCRIPTION DU PROGRAMME :
+      * RECUPERE LES LABELS DES MESSAGES D'ERREUR A PARTIR D'UN CODE,
+      * DEPUIS UNE TABLE DB2
+
+       PROGRAM-ID. MAJASSP1.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 10 JANVIER 2021.
+
+      * --------------------
+      * ENVIRONMENT DIVISION
+      * --------------------
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+           IBM-370.
+      *    IBM-370 WITH DEBUGGING MODE.
+       OBJECT-COMPUTER. IBM-370.
+
+      * -------------
+      * DATA DIVISION
+      * -------------
+
+       DATA DIVISION.
+
+       WORKING-STORAGE SECTION.
+
+      *STRUCTURE DES TABLES DB2
+
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+             INCLUDE MESSDB2
+           END-EXEC
+
+      *VARIABLES UTILISEES PAR DSNTIAR
+
+       01 ERR-MSG.
+         02 ERR-LONG           PIC S9(4) COMP VALUE +720.
+         02 ERR-TXT            PIC X(75) OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99.
+
+      *ZONES D'ECHANGE
+
+       01 E-NUM                PIC X(3).
+       01 E-MES                PIC X(60).
+
+      *CURSEURS
+
+           EXEC SQL
+             DECLARE C_MESS CURSOR FOR
+               SELECT NUM, MES
+               FROM MESSDB2
+             FOR FETCH ONLY
+           END-EXEC
+
+       LINKAGE SECTION.
+
+       01 TABLEAU.
+         02 LIGNE OCCURS 150 INDEXED BY IX.
+           03 T-NUM              PIC X(3).
+           03 T-MES              PIC X(60).
+
+      * ------------------
+      * PROCEDURE DIVISION
+      * ------------------
+
+       PROCEDURE DIVISION USING TABLEAU.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           SET IX TO 1
+           PERFORM OUVRIR-CURSEUR
+           PERFORM LIRE-CURSEUR
+           PERFORM UNTIL SQLCODE NOT = ZERO
+             MOVE E-NUM TO T-NUM(IX)
+             MOVE E-MES TO T-MES(IX)
+             PERFORM LIRE-CURSEUR
+             SET IX UP BY 1
+           END-PERFORM
+           PERFORM FERMER-CURSEUR
+           GOBACK
+           .
+
+       OUVRIR-CURSEUR.
+           EXEC SQL
+             OPEN C_MESS
+           END-EXEC
+           .
+
+       LIRE-CURSEUR.
+           EXEC SQL
+             FETCH C_MESS
+             INTO :E-NUM, :E-MES
+           END-EXEC
+           .
+
+       FERMER-CURSEUR.
+           EXEC SQL
+             CLOSE C_MESS
+           END-EXEC
+           .
+
+       PARAG-ERR.
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           GOBACK
+           .

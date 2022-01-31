@@ -1,0 +1,145 @@
+       IDENTIFICATION DIVISION.
+      *------------------------
+
+       PROGRAM-ID. EX31.
+
+
+       ENVIRONMENT DIVISION.
+      *---------------------
+
+
+       DATA DIVISION.
+      *--------------
+
+       WORKING-STORAGE SECTION.
+
+       01 DLI-FUNCTIONS.
+          05 DLI-GU            PIC X(4) VALUE 'GU  '.
+          05 DLI-GHU           PIC X(4) VALUE 'GHU '.
+          05 DLI-GN            PIC X(4) VALUE 'GN  '.
+          05 DLI-GHN           PIC X(4) VALUE 'GHN '.
+          05 DLI-GNP           PIC X(4) VALUE 'GNP '.
+          05 DLI-GHNP          PIC X(4) VALUE 'GHNP'.
+          05 DLI-ISRT          PIC X(4) VALUE 'ISRT'.
+          05 DLI-DLET          PIC X(4) VALUE 'DLET'.
+          05 DLI-REPL          PIC X(4) VALUE 'REPL'.
+          05 DLI-CHKP          PIC X(4) VALUE 'CHKP'.
+          05 DLI-XRST          PIC X(4) VALUE 'XRST'.
+          05 DLI-PCB           PIC X(4) VALUE 'PCB '.
+
+       01 IOA                  PIC X(100).
+       01 S-P010A REDEFINES IOA.
+          02 P010AK            PIC X(6).
+          02 P010ALIB          PIC X(44).
+          02 FILLER            PIC X(50).
+       01 S-P010B REDEFINES S-P010A.
+          02 P010BSER          PIC X(5).
+          02 P010BLIB          PIC X(25).
+          02 FILLER            PIC X(70).
+       01 S-P010C REDEFINES S-P010A.
+          02 P010CPRO          PIC X(6).
+          02 P010CLIB          PIC X(14).
+          02 P010CSER          PIC X(5).
+          02 P010CCAT          PIC X.
+          02 FILLER            PIC X(74).
+
+       01 SSA-NQ-A.
+          02 FILLER            PIC X(9) VALUE 'P010A'.
+          02 FILLER            PIC X VALUE '*'.
+          02 FILLER            PIC X VALUE 'P'.
+
+       01 SSA-NQ-B.
+          02 FILLER            PIC X(9) VALUE 'P010B'.
+
+       01 SSA-Q.
+          05 SEGMENT-NAME      PIC X(8) VALUE 'P010C'.
+          05 FILLER            PIC X VALUE '*'.
+          05 CODE-COMMANDE     PIC X VALUE 'F'.
+          05 FILLER            PIC X(1) VALUE '('.
+          05 FIELD-NAME        PIC X(8) VALUE 'P010CSER'.
+          05 REL-OPR           PIC X(2) VALUE '='.
+          05 SEARCH-VALUE      PIC X(5).
+          05 FILLER            PIC X(1) VALUE ')'.
+
+       01 SSA-Q-A.
+          05 SEGMENT-NAME-A    PIC X(8) VALUE 'P010A'.
+      *   05 FILLER            PIC X VALUE '*'.
+      *   05 CODE-COMMANDE     PIC X VALUE 'P'.
+          05 FILLER            PIC X(1) VALUE '('.
+          05 FIELD-NAME-A      PIC X(8) VALUE 'P010AK'.
+          05 REL-OPR-A         PIC X(2) VALUE '='.
+          05 SEARCH-VALUE-A    PIC X(6).
+          05 FILLER            PIC X(1) VALUE ')'.
+
+
+      *DESCRIPTION DES SEGMENTS
+
+
+       01 CR.
+          02 CR-A              PIC XX.
+          02 CR-B              PIC XX.
+          02 CR-C              PIC XX.
+
+
+       LINKAGE SECTION.
+
+       01  PCB1.
+            05 PCB1-DBD1       PIC X(8).
+            05 PCB1-NIV        PIC X(2).
+            05 PCB1-CR         PIC X(2).
+            05 PCB1-OPT        PIC X(4).
+            05 FILLER          PIC X(4).
+            05 PCB1-SEG        PIC X(8).
+            05 PCB1-LGCLE      PIC S9(5) COMP.
+            05 PCB1-SENSEG     PIC S9(5) COMP.
+            05 PCB1-KFA        PIC X(17).
+
+       01  PCB2.
+            05 PCB2-DBD1       PIC X(8).
+            05 PCB2-NIV        PIC X(2).
+            05 PCB2-CR         PIC X(2).
+            05 PCB2-OPT        PIC X(4).
+            05 FILLER          PIC X(4).
+            05 PCB2-SEG        PIC X(8).
+            05 PCB2-LGCLE      PIC S9(5) COMP.
+            05 PCB2-SENSEG     PIC S9(5) COMP.
+            05 PCB2-KFA        PIC X(17).
+
+
+       PROCEDURE DIVISION.
+      *-------------------
+
+           ENTRY 'DLITCBL' USING PCB1 PCB2
+           PERFORM V1
+           GOBACK
+           .
+
+       V1.
+      *    RECUPERER SUR P010A
+           CALL 'CBLTDLI' USING DLI-GN PCB1 IOA SSA-NQ-A
+      **   CALL 'CBLTDLI' USING DLI-GN PCB2 IOA SSA-NQ-A
+           MOVE P010AK TO SEARCH-VALUE-A
+           CALL 'CBLTDLI' USING DLI-GU PCB2 IOA SSA-Q-A
+           PERFORM UNTIL PCB1-CR = 'GB'
+              DISPLAY 'PLAN: ' IOA
+      *       RECUPERER LES P010B DU PLAN ACTUEL P010A
+              CALL 'CBLTDLI' USING DLI-GNP PCB1 IOA SSA-NQ-B
+              PERFORM UNTIL PCB1-CR = 'GE'
+                 DISPLAY '  SERVICE: ' IOA
+                 MOVE P010BSER TO SEARCH-VALUE
+                 MOVE 'F' TO CODE-COMMANDE
+      *          RECUPERER LES PRODUITS P010C DU SERVICE P010B ACTUEL
+                 CALL 'CBLTDLI' USING DLI-GNP PCB2 IOA SSA-Q
+                 PERFORM UNTIL PCB2-CR = 'GE'
+                    DISPLAY '    PRODUIT: ' IOA
+                    MOVE '-' TO CODE-COMMANDE
+                    CALL 'CBLTDLI' USING DLI-GNP PCB2 IOA SSA-Q
+                 END-PERFORM
+                 CALL 'CBLTDLI' USING DLI-GNP PCB1 IOA SSA-NQ-B
+              END-PERFORM
+              CALL 'CBLTDLI' USING DLI-GN PCB1 IOA SSA-NQ-A
+      **      CALL 'CBLTDLI' USING DLI-GN PCB2 IOA SSA-NQ-A
+              MOVE P010AK TO SEARCH-VALUE-A
+              CALL 'CBLTDLI' USING DLI-GU PCB2 IOA SSA-Q-A
+           END-PERFORM
+           .

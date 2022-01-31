@@ -1,0 +1,34 @@
+//APIXXE   JOB 'SDJ FORMATION',MSGLEVEL=(1,1),MSGCLASS=H,CLASS=A,       00000109
+//   NOTIFY=&SYSUID,TIME=(,1)                                           00000208
+//*------------------------------------------------------*              00000300
+//*      MODIFIER $ PAR N¢ DU GROUPE                     *              00000400
+//*------------------------------------------------------*              00000500
+//*                                                                     00001000
+//********************************************************************* 00002005
+//*  PROCEDURE DE COMPIL/LINK EDIT D'UN PROGRAMME COBOL INFNCOXX      * 00003005
+//*                                                                   * 00004005
+//*  TAPER LA COMMANDE "C API$  PAR APIN  :(N  N¢ DE VOTRE GROUPE)    * 00005006
+//*                                                                   * 00006005
+//*  TAPER LA COMMANDE "SUB" AFIN DE SOUMETTRE VOTRE JOB              * 00007005
+//*                                                                   * 00008005
+//*  CHANGER 'INFNCOXX' PAR VOTRE NOM DE PROGRAMME                    * 00009005
+//********************************************************************* 00010005
+//*                                                                     00012200
+//JOBLIB   DD DSN=API$.COBOL.LOAD,DISP=SHR                              00013006
+//         DD DSN=CEE.SCEERUN,DISP=SHR                                  00014000
+//*                                                                     00015000
+//STEP1    EXEC PGM=INFNCO$                                             00030007
+//SYSPRINT DD SYSOUT=*                                                  00040000
+//SYSOUT   DD SYSOUT=*                                                  00050000
+//*                                                                     00051000
+//* A UTILISER EN FONCTION DES FICHIERS TRAITES PAR LE PROGRAMME        00052000
+//*                                                                     00053000
+//*DDASSUR  DD DSN=API$.COBOL.SOURCE(ASSURE),DISP=SHR                   00053106
+//*DDMOUVT  DD DSN=API$.COBOL.SOURCE(MOUVEMEN),DISP=SHR                 00053306
+//*DDLPRET  DD DSN=API$.COBOL.SOURCE(LPRETS),DISP=SHR                   00053406
+//*DDFIMP   DD SYSOUT=*                                                 00054000
+//*LIST     DD SYSOUT=*                                                 00055000
+/*                                                                      00056000
+//                                                                      00056100
+//SYSIN    DD *                                                         00057000
+2007    *==>DATE NON UTILISEE PAR PROG (SANS CONSEQUENCE)               00058005

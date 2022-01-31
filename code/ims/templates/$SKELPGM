@@ -1,0 +1,18 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TPNXX.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01
+        .
+        .
+       LINKAGE SECTION.
+       01  PCB1.
+        .
+        .
+       PROCEDURE DIVISION.
+            ENTRY 'DLITCBL' USING PCB1.
+            .
+            .
+            .
+            GOBACK.

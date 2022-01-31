@@ -1,0 +1,172 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS01.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 13 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STRUCTURE DES TABLES DB2 ---------------------------------------
+
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC
+
+           EXEC SQL
+              INCLUDE REJETS
+           END-EXEC
+
+      *STRUCTURES POUR SQLCA ------------------------------------------
+
+       01 ERR-MSG.
+          02 ERR-LONG          PIC S9(4) COMP VALUE +720.
+          02 ERR-TXT           PIC X(72) VALUE SPACE OCCURS 10 TIMES.
+       01 ERR-TXT-LONG         PIC S9(9) COMP VALUE 72.
+       01 I                    PIC 99 VALUE ZEROS.
+
+      *ZONES D'ECHANGE ------------------------------------------------
+
+       01 WS-LIGNE.
+          02 WS-NUMLN          PIC X(6).
+          02 WS-NOMPGM         PIC X(8).
+          02 WS-MAT            PIC X(6).
+          02 WS-NUMERR         PIC X(3).
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-LIGNE.
+          02 L-NUMLN           PIC X(6).
+          02 L-NOMPGM          PIC X(8).
+          02 L-MAT             PIC X(6).
+          02 L-NUMERR          PIC X(3).
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      */////////////////////////////////
+       PROCEDURE DIVISION USING L-LIGNE.
+      */////////////////////////////////
+
+           PERFORM 000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 000S - RACINE DU PROGRAMME
+      *--------------------------------
+
+       000-RACINE.
+           EXEC SQL
+             WHENEVER SQLERROR GOTO :PARAG-ERR
+           END-EXEC
+           PERFORM 100-TRAITER
+           .
+
+
+      *BLOCS 100S - TRAITER LES DONNEES
+      *--------------------------------
+
+       100-TRAITER.
+           PERFORM 110-ALIMENTER-ZONE-ECHANGE
+           PERFORM 120-ECRIRE-ERREURS
+           .
+
+
+       110-ALIMENTER-ZONE-ECHANGE.
+           MOVE L-LIGNE  TO WS-LIGNE
+           .
+
+
+       120-ECRIRE-ERREURS.
+      *ECRIRE LES ERREURS DANS LA TABLE REJETS DB2
+           EXEC SQL
+              INSERT INTO API1.REJETS
+                 VALUES (
+                            :WS-NUMLN,
+                            :WS-NOMPGM,
+                            :WS-MAT,
+                            :WS-NUMERR
+                        )
+           END-EXEC
+           .
+
+
+      *BLOCS DB2 - GESTION DB2
+      *-----------------------
+
+       PARAG-ERR.
+      *GERER LES ERREURS DB2 AVEC DSNTIAR
+           DISPLAY 'ERREUR DB2'
+           DISPLAY 'APPEL DSNTIAR (MISE EN FORME SQLCA)'
+           CALL 'DSNTIAR' USING SQLCA, ERR-MSG, ERR-TXT-LONG
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > 10
+              DISPLAY ERR-TXT (I)
+           END-PERFORM
+           PERFORM FIN-PROGRAMME
+           .

@@ -1,0 +1,83 @@
+       IDENTIFICATION DIVISION.
+      *------------------------
+
+       PROGRAM-ID. EX2.
+
+
+       ENVIRONMENT DIVISION.
+      *---------------------
+
+
+       DATA DIVISION.
+      *--------------
+
+       WORKING-STORAGE SECTION.
+
+       01 DLI-FUNCTIONS.
+          05 DLI-GU            PIC X(4) VALUE 'GU  '.
+          05 DLI-GHU           PIC X(4) VALUE 'GHU '.
+          05 DLI-GN            PIC X(4) VALUE 'GN  '.
+          05 DLI-GHN           PIC X(4) VALUE 'GHN '.
+          05 DLI-GNP           PIC X(4) VALUE 'GNP '.
+          05 DLI-GHNP          PIC X(4) VALUE 'GHNP'.
+          05 DLI-ISRT          PIC X(4) VALUE 'ISRT'.
+          05 DLI-DLET          PIC X(4) VALUE 'DLET'.
+          05 DLI-REPL          PIC X(4) VALUE 'REPL'.
+          05 DLI-CHKP          PIC X(4) VALUE 'CHKP'.
+          05 DLI-XRST          PIC X(4) VALUE 'XRST'.
+          05 DLI-PCB           PIC X(4) VALUE 'PCB '.
+
+       01 IOA                  PIC X(100).
+
+       01 SSA-NQ-PLAN          PIC X(9) VALUE 'P010A'.
+
+      *DESCRIPTION DES SEGMENTS
+
+       01 S-P010A.
+          02 P010AK            PIC X(6).
+          02 P010ALIB          PIC X(44).
+
+       01 S-P010B.
+          02 P010BSER          PIC X(5).
+          02 P010BLIB          PIC X(25).
+
+       01 S-P010C.
+          02 P010CPRO          PIC X(6).
+          02 P010CLIB          PIC X(14).
+          02 P010CSER          PIC X(5).
+          02 P010CCAT          PIC X.
+
+
+       LINKAGE SECTION.
+
+       01  PCB1.
+            05 PCB1-DBD1       PIC X(8).
+            05 PCB1-NIV        PIC X(2).
+            05 PCB1-CR         PIC X(2).
+            05 PCB1-OPT        PIC X(4).
+            05 FILLER          PIC X(4).
+            05 PCB1-SEG        PIC X(8).
+            05 PCB1-LGCLE      PIC S9(5) COMP.
+            05 PCB1-SENSEG     PIC S9(5) COMP.
+            05 PCB1-KFA        PIC X(17).
+
+
+       PROCEDURE DIVISION.
+      *-------------------
+
+            ENTRY 'DLITCBL' USING PCB1
+            PERFORM TEST AFTER UNTIL PCB1-CR = 'GB'
+               CALL 'CBLTDLI' USING DLI-GN PCB1 IOA
+               EVALUATE PCB1-SEG(1:5)
+                  WHEN 'P010A'
+                     DISPLAY 'PLAN: ' IOA
+                  WHEN 'P010B'
+                     DISPLAY '  SERVICE: ' IOA
+                  WHEN 'P010C'
+                     DISPLAY '  PRODUIT: ' IOA
+                  WHEN OTHER
+                     DISPLAY 'ÝEX2¨ SEGMENT IGNORE!'
+               END-EVALUATE
+            END-PERFORM
+            GOBACK
+            .

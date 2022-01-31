@@ -1,0 +1,170 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      *
+      * TITRE:       MAOPTS3V - ACCESSEUR DE FICHIERS VSAM
+      * ------
+      *
+      * ENTREES:
+      * --------
+      *
+      * SORTIES:
+      * --------
+      *
+      * DESCRIPTION:
+      * ------------
+      *
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAOPTS3V.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 17 JANVIER 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT MVT ASSIGN TO MVT
+              FILE STATUS WS-FS-MVT
+              .
+
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD MVT RECORDING F.
+       01 EMVT.
+          COPY CFMVTSE.
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      * STATUT DES FICHIERS ------------------------------------------
+
+       01 WS.
+          02 WS-FS-MVT         PIC 99.
+             88 FS-SUPPORTE    VALUES 00, 10.
+
+
+       LINKAGE SECTION.
+      *----------------
+
+       01 L-PARMS.
+          02 USERINPUT.
+             03 ID-ACS         PIC X.
+             03 NOM-FICHIER    PIC X(8).
+             03 CODE-FONCTION  PIC 99.
+          02 ENREGISTREMENT.
+             COPY CFMVTSE.
+          02 CODE-RETOUR       PIC 99.
+      *      00 OPERATION COMPLETED SUCCESSFULLY
+      *      10 END OF FILE ENCOUNTERED
+             88 CRST-00        VALUE 00.
+             88 CRST-10        VALUE 04.
+          02 FILLER            PIC X(128).
+
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      */////////////////////////////////
+       PROCEDURE DIVISION USING L-PARMS.
+      */////////////////////////////////
+
+           PERFORM 0000-RACINE
+           PERFORM FIN-PROGRAMME
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+       FIN-PROGRAMME.
+           GOBACK
+           .
+
+
+      *BLOCS 0000S - OPERATIONS DU SOUS-PROGRAMME
+      *------------------------------------------
+
+       0000-RACINE.
+           EVALUATE CODE-FONCTION
+      *       CODE-FONCTION 01 : OUVERTURE ENTREE
+              WHEN 01
+                 OPEN INPUT MVT
+                 PERFORM FST-TRAITER
+      *       CODE-FONCTION 05 : FERMETURE
+              WHEN 05
+                 CLOSE MVT
+                 PERFORM FST-TRAITER
+      *       CODE-FONCTION 06 : LECTURE
+              WHEN 06
+                 READ MVT INTO ENREGISTREMENT
+      *       CODE-FONCTION INCONNU
+              WHEN OTHER
+                 DISPLAY 'ÝMAOPTS3S¨ CODE-FONCTION INCORRECT!'
+                 DISPLAY 'VALEUR ACTUELLE POUR CODE-FONCTION: '
+                          CODE-FONCTION '.'
+                 DISPLAY 'VALEURS ATTENDUES POUR CODE-FONCTION: 01, 05,
+      -    '06.'
+                 MOVE 16 TO RETURN-CODE
+                 PERFORM FIN-PROGRAMME
+           END-EVALUATE
+      *    EVALUATION DU STATUT DE FICHIER
+           PERFORM FST-TRAITER
+           .
+
+
+      *BLOCS TESTER-FS - TESTER LE STATUT DES FICHIERS
+      *-----------------------------------------------
+
+       FST-TRAITER.
+           EVALUATE WS-FS-MVT
+              WHEN 00
+                 SET CRST-00 TO TRUE
+              WHEN 10
+                 SET CRST-10 TO TRUE
+              WHEN OTHER
+                 PERFORM FST-MVT
+           END-EVALUATE
+           .
+
+
+       FST-MVT.
+           IF NOT FS-SUPPORTE
+              DISPLAY 'ÝMAOPTS3S¨ ERREUR SUR LE FICHIER MVT: ' WS-FS-MVT
+              MOVE 16 TO RETURN-CODE
+              PERFORM FIN-PROGRAMME
+           END-IF
+           .

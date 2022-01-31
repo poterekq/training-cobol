@@ -1,0 +1,169 @@
+       IDENTIFICATION DIVISION.
+
+       PROGRAM-ID. ALGO3.
+       AUTHOR. QUENTIN POTEREK
+       DATE-WRITTEN. 03 DECEMBRE 2021
+
+
+      * ---------------------------------
+      * ALGORITHME 3 - FUSION DE FICHIERS
+      * ---------------------------------
+
+      *
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CLIENT1 ASSIGN TO CLIENT1
+             FILE STATUS WS-C1.
+           SELECT CLIENT2 ASSIGN TO CLIENT2
+             FILE STATUS WS-C2.
+           SELECT CLIENTF ASSIGN TO CLIENTF
+             FILE STATUS WS-CF.
+
+      *
+       DATA DIVISION.
+
+       FILE SECTION.
+       FD CLIENT1 RECORDING F.
+       01 ECLIENT1.
+         05 C1-ID         PIC 9(4).
+         05 C1-NOM-CLIENT PIC X(20).
+         05 FILLER        PIC X(56).
+       FD CLIENT2 RECORDING F.
+       01 ECLIENT2.
+         05 C2-ID         PIC 9(4).
+         05 C2-NOM-CLIENT PIC X(20).
+         05 FILLER        PIC X(56).
+       FD CLIENTF RECORDING F.
+       01 ECLIENTF        PIC X(80).
+
+       WORKING-STORAGE SECTION.
+       77 WS-C1 PIC XX.
+       77 WS-C2 PIC XX.
+       77 WS-CF PIC XX.
+
+       77 C1-COMPTEUR     PIC 9(4) VALUE 0.
+       77 C2-COMPTEUR     PIC 9(4) VALUE 0.
+       77 CF-COMPTEUR     PIC 9(4) VALUE 0.
+
+       77 C1-TMP-ID       PIC 9(4) VALUE 0.
+       77 C2-TMP-ID       PIC 9(4) VALUE 0.
+
+       01 CF-LIGNE.
+         05 CF-ID PIC 9(4).
+         05 CF-NOM-CLIENT PIC X(20).
+         05 FILLER        PIC X(56).
+
+      *
+       PROCEDURE DIVISION.
+
+           OPEN INPUT CLIENT1
+           PERFORM TEST-STAT-C1
+           OPEN INPUT CLIENT2
+           PERFORM TEST-STAT-C2
+           OPEN OUTPUT CLIENTF
+           PERFORM TEST-STAT-CF
+
+           READ CLIENT1
+           PERFORM TEST-STAT-C1
+           READ CLIENT2
+           PERFORM TEST-STAT-C2
+
+           PERFORM UNTIL WS-C1 = '10' OR WS-C2 = '10'
+             PERFORM TEST-STAT-C1
+             PERFORM TEST-STAT-C2
+             IF C1-ID < C2-ID
+               PERFORM CHECK-REC-C1
+               READ CLIENT1
+               ADD 1 TO C1-COMPTEUR
+             ELSE
+               IF C1-ID = C2-ID
+                 DISPLAY 'DOUBLON POUR ' C1-ID ' ET ' C2-ID
+                 READ CLIENT1
+                 READ CLIENT2
+               ELSE
+                 PERFORM CHECK-REC-C2
+                 READ CLIENT2
+                 ADD 1 TO C2-COMPTEUR
+               END-IF
+             END-IF
+           END-PERFORM
+
+           PERFORM UNTIL WS-C1 = '10'
+             PERFORM TEST-STAT-C1
+             PERFORM CHECK-REC-C1
+             READ CLIENT1
+             ADD 1 TO C1-COMPTEUR
+           END-PERFORM
+
+           PERFORM UNTIL WS-C2 = '10'
+             PERFORM TEST-STAT-C2
+             PERFORM CHECK-REC-C2
+             READ CLIENT2
+             ADD 1 TO C2-COMPTEUR
+           END-PERFORM
+
+           CLOSE CLIENT1
+           PERFORM TEST-STAT-C1
+           CLOSE CLIENT2
+           PERFORM TEST-STAT-C2
+           CLOSE CLIENTF
+           PERFORM TEST-STAT-CF
+
+           DISPLAY 'NUMBER OF RECORDS IN C1: ' C1-COMPTEUR
+           DISPLAY 'NUMBER OF RECORDS IN C2: ' C2-COMPTEUR
+           DISPLAY 'NUMBER OF RECORDS IN CF: ' CF-COMPTEUR
+
+           STOP RUN
+           .
+
+       CHECK-REC-C1.
+           IF C1-ID NOT = C1-TMP-ID
+             MOVE C1-ID TO C1-TMP-ID
+             MOVE C1-ID TO CF-ID
+             MOVE C1-NOM-CLIENT TO CF-NOM-CLIENT
+             MOVE CF-LIGNE TO ECLIENTF
+             WRITE ECLIENTF
+             ADD 1 TO CF-COMPTEUR
+           ELSE
+             DISPLAY 'PLUSIEURS ' C1-ID ' DANS LE FICHIER'
+           END-IF
+           .
+
+       CHECK-REC-C2.
+           IF C2-ID NOT = C2-TMP-ID
+             MOVE C2-ID TO C2-TMP-ID
+             MOVE C2-ID TO CF-ID
+             MOVE C2-NOM-CLIENT TO CF-NOM-CLIENT
+             MOVE CF-LIGNE TO ECLIENTF
+             WRITE ECLIENTF
+             ADD 1 TO CF-COMPTEUR
+           ELSE
+             DISPLAY 'PLUSIEURS ' C2-ID ' DANS LE FICHIER'
+           END-IF
+           .
+
+       TEST-STAT-C1.
+           IF WS-C1 NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENT1 - ' WS-C1
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+
+       TEST-STAT-C2.
+           IF WS-C2 NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENT2 - ' WS-C2
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .
+
+       TEST-STAT-CF.
+           IF WS-CF NOT = '00'
+             DISPLAY 'ERREUR FICHIER CLIENTF - ' WS-CF
+             MOVE 16 TO RETURN-CODE
+             STOP RUN
+           END-IF
+           .

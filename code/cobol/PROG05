@@ -1,0 +1,42 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PROG05.
+      * --------------------------
+      * INSTRUCTIONS ARITHMETIQUES
+      * --------------------------
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77  Z1    PIC S999 VALUE 0.
+       77  Z2    PIC S999 VALUE 0.
+       77  Z3    PIC S999 VALUE 0.
+       77  Z4    PIC S999 VALUE 0.
+       77  RESULTAT PIC +++9.
+       PROCEDURE DIVISION.
+           MOVE 55 TO Z1
+           MOVE Z1 TO RESULTAT
+           DISPLAY 'Z1=' RESULTAT
+           ADD Z1 Z2 5 GIVING Z3
+           MOVE Z3 TO RESULTAT
+           DISPLAY 'Z3=' RESULTAT
+           ADD 7 TO Z4
+           MOVE Z4 TO RESULTAT
+           DISPLAY 'Z4=' RESULTAT
+           SUBTRACT 2 FROM Z2
+           MOVE Z2 TO RESULTAT
+           DISPLAY 'Z2=' RESULTAT
+           SUBTRACT 2 FROM Z2 GIVING Z3
+           MOVE Z3 TO RESULTAT
+           DISPLAY 'Z3=' RESULTAT
+           MULTIPLY 2 BY Z3 GIVING Z3
+           MOVE Z3 TO RESULTAT
+           DISPLAY 'Z3=' RESULTAT
+           DIVIDE Z1 BY 3 GIVING Z4 ROUNDED
+           MOVE Z4 TO RESULTAT
+           DISPLAY 'Z4=' RESULTAT
+           DIVIDE Z3 BY 3 GIVING Z2 ROUNDED
+           MOVE Z2 TO RESULTAT
+           DISPLAY 'Z2=' RESULTAT
+           DIVIDE Z3 BY 3 GIVING Z2
+           MOVE Z2 TO RESULTAT
+           DISPLAY 'Z2=' RESULTAT
+           STOP RUN
+           .

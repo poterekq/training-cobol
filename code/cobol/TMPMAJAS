@@ -1,0 +1,377 @@
+      *////////////////////////
+       IDENTIFICATION DIVISION.
+      *////////////////////////
+
+      ******************************************************************
+      ******************************************************************
+      * TITRE:       MAJAS - MISE A JOUR ASSURES
+      * ------
+      *
+      * ENTREES:     ASSURES3 (KSDS) ÝINPUT¨
+      * --------     ASSURES4 (KSDS) ÝOUTPUT¨
+      *              MVTPROJ  (ESDS) ÝINPUT¨
+      *
+      * SORTIES:     STATISTIQUES (SYSOUT)
+      * --------     ETATANO      (SEQ)
+      *
+      * DESCRIPTION: MAJAS EST UNE CHAINE DE TRAITEMENT POUR LA MISE A
+      * ------------ JOUR DES INFORMATIONS SUR LES ASSURES. ELLE PREND
+      *              LES FICHIERS ASSURES3 (SOURCE) ET MVTPROJ (INFOR-
+      *              -MATIONS SUR LES MISES A JOUR), PUIS ALIMENTE LE
+      *              FICHIER ASSURES4 (DESTINATION).
+      *
+      *              LA CHAINE DE TRAITEMENTS FOURNIT EGALEMENT DES
+      *              STATISTIQUES SUR LES ENREGISTREMENTS ET MODIFI-
+      *              -CATIONS, AINSI QU'UN RAPPORT D'ERREURS DE TRAI-
+      *              -TEMENT DES ASSURES (ETATANO).
+      ******************************************************************
+      ******************************************************************
+
+       PROGRAM-ID. MAJAS.
+       AUTHOR. QUENTIN POTEREK.
+       DATE-WRITTEN. 15 DECEMBRE 2021.
+
+      * -------------------------------------------------------------- *
+      *                       ENVIRONMENT DIVISION                     *
+      * -------------------------------------------------------------- *
+
+      */////////////////////
+       ENVIRONMENT DIVISION.
+      */////////////////////
+
+       CONFIGURATION SECTION.
+      *----------------------
+
+       SOURCE-COMPUTER.
+      *    IBM-370.
+           IBM-370 WITH DEBUGGING MODE.
+
+       OBJECT-COMPUTER. IBM-370.
+
+       INPUT-OUTPUT SECTION.
+      *---------------------
+
+       FILE-CONTROL.
+
+           SELECT ASS3 ASSIGN TO ASSURES3
+             ORGANIZATION IS INDEXED
+             ACCESS MODE IS SEQUENTIAL
+             RECORD KEY IS MAT-X3
+             FILE STATUS WS-FS-ASS3.
+
+           SELECT MVTP ASSIGN TO AS-MVTPROJ
+             FILE STATUS WS-FS-MVTP.
+
+           SELECT ASS4 ASSIGN TO ASSURES4
+      *      ORGANIZATION IS INDEXED
+      *      ACCESS MODE IS DYNAMIC
+      *      RECORD KEY IS MAT-X4
+             FILE STATUS WS-FS-ASS4.
+
+      * -------------------------------------------------------------- *
+      *                          DATA DIVISION                         *
+      * -------------------------------------------------------------- *
+
+      *//////////////
+       DATA DIVISION.
+      *//////////////
+
+       FILE SECTION.
+      *-------------
+
+       FD ASS3.
+       01 EASS3.
+         COPY CASSURE3.
+
+       FD ASS4 RECORDING F.
+       01 EASS4.
+         COPY CASSURE4.
+
+       FD MVTP.
+       01 EMVTP.
+         COPY CFMVTSE.
+
+       WORKING-STORAGE SECTION.
+      *------------------------
+
+      *STATUT DES FICHIERS
+
+       01 WS-FS.
+         02 WS-FS-ASS3 PIC XX.
+         02 WS-FS-ASS4 PIC XX.
+         02 WS-FS-MVTP PIC XX.
+
+      *SOUS-PROGRAMMES
+
+       01 SP.
+         02 SP1 PIC X(6) VALUE 'MKDATE'.
+
+      *COMPTEURS
+
+       01 CPT.
+         02 CPT-ASS3 PIC 9(4).
+         02 CPT-ASS4 PIC 9(4).
+         02 CPT-MVTP PIC 9(4).
+
+      *STRUCTURES DE CONTROLE
+
+       01 CMATRICULES.
+         02 CMAT1-ASS3 PIC X(6).
+         02 CMAT2-ASS3 PIC X(6).
+         02 CMAT3-ASS3 PIC X(6).
+         02 CMAT1-MVTP PIC X(6).
+         02 CMAT2-MVTP PIC X(6).
+         02 CMAT3-MVTP PIC X(6).
+
+       01 CBUFFERS.
+         02 CBUFF-ASS3 PIC X(80).
+         02 CBUFF-MVTP PIC X(80).
+
+      *STATISTIQUES SUR LES FICHIERS
+
+       77 HEADER-TYPE PIC X VALUE 'D'.
+       77 STATS-HEADER-LIGNE PIC X(80).
+
+       LINKAGE SECTION.
+      *----------------
+
+      *PARAMETRES PASSES AU JCL
+       01 PARM-FIELD.
+          05 PARM-LENGTH PIC S9(4) COMP.
+          05 PARM-USER   PIC X(4).
+
+      * -------------------------------------------------------------- *
+      *                        PROCEDURE DIVISION                      *
+      * -------------------------------------------------------------- *
+
+      *////////////////////////////////////
+       PROCEDURE DIVISION USING PARM-FIELD.
+      *////////////////////////////////////
+
+           PERFORM 100-DEBUT-PGM
+           PERFORM 200-TRAITEMENTS-PGM
+
+           PERFORM 900-AFFICHER-STATS
+
+           GOBACK
+           .
+
+
+      * -------------------------------------------------------------- *
+
+
+      *BLOCS FST - EVALUATION DE L'INTEGRITE DES FICHIERS
+      *--------------------------------------------------
+
+       FST-ASS3.
+           IF WS-FS-ASS3 NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER ASSURES3: ' WS-FS-ASS3
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+
+       FST-ASS4.
+           IF WS-FS-ASS4 NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER ASSURES4: ' WS-FS-ASS4
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+
+       FST-MVTP.
+           IF WS-FS-MVTP NOT = '00' AND '10'
+             DISPLAY 'ERREUR FICHIER MVTPROJ: ' WS-FS-MVTP
+             MOVE 16 TO RETURN-CODE
+             GOBACK
+           END-IF
+           .
+
+      *BLOCS NO. 100S - INITIALISATION DU PROGRAMME
+      *--------------------------------------------
+
+       100-DEBUT-PGM.
+           PERFORM 110-INITIALISATION-ZONES
+           PERFORM 120-OUVERTURE-FICHIERS
+           .
+
+
+       110-INITIALISATION-ZONES.
+      *    INITIALISATION DES ZONES
+           INITIALIZE CPT
+           INITIALIZE CMATRICULES
+           INITIALIZE CBUFFERS
+           .
+
+
+       120-OUVERTURE-FICHIERS.
+      *    OUVERTURE DES FICHIERS ET TEST D'INTEGRITE
+           OPEN INPUT ASS3
+           PERFORM FST-ASS3
+           OPEN INPUT MVTP
+           PERFORM FST-MVTP
+           OPEN OUTPUT ASS4
+           PERFORM FST-ASS4
+           .
+
+      *BLOCS NO. 200S - TRAITEMENTS
+      *----------------------------
+
+       200-TRAITEMENTS-PGM.
+           PERFORM 210-INITIALISER-APPARIEMENT
+           PERFORM 220-APPARIEMENT-FICHIERS
+           .
+
+
+       210-INITIALISER-APPARIEMENT.
+      * INITIALISER LES STRUCTURES DE CONTROLE D'APPARIEMENT A PARTIR
+      * DES FICHIERS ASSURES3 ET MVTPROJ
+           PERFORM 211-INITIALISER-ASS3
+           PERFORM 212-INITIALISER-MVTP
+           .
+
+
+       211-INITIALISER-ASS3.
+      * LIRE LES DEUX PREMIERS ENREGISTREMENTS DE ASS3 ET CREER LES
+      * STRUCTURES DE CONTROLE NECESSAIRES A L'APPARIEMENT DE FICHIERS
+           READ ASS3
+           PERFORM FST-ASS3
+           IF WS-FS-ASS3 NOT = '10'
+             ADD 1 TO CPT-ASS3
+             MOVE MAT-X3 TO CMAT2-ASS3
+             MOVE EASS3 TO CBUFF-ASS3
+             READ ASS3
+             PERFORM FST-ASS3
+             IF WS-FS-ASS3 NOT = '10'
+               ADD 1 TO CPT-ASS3
+               MOVE MAT-X3 TO CMAT3-ASS3
+             END-IF
+           END-IF
+           .
+
+
+       212-INITIALISER-MVTP.
+      * LIRE LES DEUX PREMIERS ENREGISTREMENTS DE MVTP ET CREER LES
+      * STRUCTURES DE CONTROLE NECESSAIRES A L'APPARIEMENT DE FICHIERS
+           READ MVTP
+           PERFORM FST-MVTP
+           IF WS-FS-MVTP NOT = '10'
+             ADD 1 TO CPT-MVTP
+             MOVE MAT-MVT TO CMAT2-MVTP
+             MOVE EMVTP TO CBUFF-MVTP
+             READ MVTP
+             PERFORM FST-MVTP
+             IF WS-FS-MVTP NOT = '10'
+               ADD 1 TO CPT-MVTP
+               MOVE MAT-MVT TO CMAT3-MVTP
+             END-IF
+           END-IF
+           .
+
+
+       220-APPARIEMENT-FICHIERS.
+      *APPARIEMENT DES FICHIERS ASSURES3 ET MVTPROJ SUR LA BASE DES
+      *STRUCTURES DE CONTROLE DEFINIES ENTRE Ý211¨ ET Ý212¨
+           PERFORM UNTIL WS-FS-ASS3 = '10' OR WS-FS-MVTP = '10'
+             EVALUATE TRUE
+               WHEN MAT-A3 < MAT-MVT
+                 PERFORM 221-TRAITER-ASS3
+               WHEN MAT-A3 > MAT-MVT
+                 PERFORM 222-TRAITER-MVTP
+               WHEN MAT-A3 = MAT-MVT
+                 PERFORM 223-SHIFT-ASS3
+                 PERFORM 224-SHIFT-MVTP
+               WHEN OTHER
+                 DISPLAY 'ERREUR SUR LES MATRICULES DE ASS3 OU MVTP'
+                 DISPLAY 'ASS3: ' MAT-A3
+                 DISPLAY 'MVTP: ' MAT-MVT
+             END-EVALUATE
+           END-PERFORM
+           .
+
+
+       221-TRAITER-ASS3.
+           IF CMAT2-ASS3 NOT = CMAT1-ASS3 AND NOT = CMAT3-ASS3
+      D      DISPLAY '--- ASS3 ---'
+      D      DISPLAY CBUFF-ASS3
+             ADD 1 TO CPT-ASS4
+           ELSE
+      D      DISPLAY 'PLUSIEURS ' CMAT2-ASS3 ' DANS LE FICHIER ASS3!'
+           END-IF
+           PERFORM 223-SHIFT-ASS3
+           .
+
+
+       222-TRAITER-MVTP.
+           IF CMAT2-MVTP NOT = CMAT1-MVTP AND NOT = CMAT3-MVTP
+      D      DISPLAY '--- MVTP ---'
+      D      DISPLAY CBUFF-MVTP
+             ADD 1 TO CPT-ASS4
+           ELSE
+      D      DISPLAY 'PLUSIEURS ' CMAT2-MVTP ' DANS LE FICHIER MVTP!'
+           END-IF
+           PERFORM 224-SHIFT-MVTP
+           .
+
+
+       223-SHIFT-ASS3.
+           MOVE EASS3 TO CBUFF-ASS3
+           MOVE CMAT2-ASS3 TO CMAT1-ASS3
+           MOVE CMAT3-ASS3 TO CMAT2-ASS3
+           READ ASS3
+           PERFORM FST-ASS3
+           IF WS-FS-ASS3 NOT = '10'
+             ADD 1 TO CPT-ASS3
+             MOVE MAT-A3 TO CMAT3-ASS3
+           END-IF
+           .
+
+
+       224-SHIFT-MVTP.
+           MOVE EMVTP TO CBUFF-MVTP
+           MOVE CMAT2-MVTP TO CMAT1-MVTP
+           MOVE CMAT3-MVTP TO CMAT2-MVTP
+           READ MVTP
+           PERFORM FST-MVTP
+           IF WS-FS-MVTP NOT = '10'
+             ADD 1 TO CPT-MVTP
+             MOVE MAT-MVT TO CMAT3-MVTP
+           END-IF
+           .
+
+      *BLOCS NO. 300S - FIN DE TRAITEMENT
+      *----------------------------------
+
+       300-FIN-TRAITEMENT.
+           PERFORM 310-FERMETURE-FICHIERS.
+           .
+
+
+       310-FERMETURES-FICHIERS.
+           CLOSE ASS4
+           PERFORM FST-ASS4
+           CLOSE ASS3
+           PERFORM FST-ASS3
+           CLOSE MVTP
+           PERFORM FST-MVTP
+           .
+
+
+      *BLOCS NO. 900S - STATISTIQUES
+      *-----------------------------
+
+       900-AFFICHER-STATS.
+           PERFORM 910-AFFICHER-HEADER-STATS
+           .
+
+
+       910-AFFICHER-HEADER-STATS.
+           MOVE 'D' TO HEADER-TYPE
+           CALL SP1 USING HEADER-TYPE PARM-USER STATS-HEADER-LIGNE
+           DISPLAY STATS-HEADER-LIGNE
+           MOVE 'H' TO HEADER-TYPE
+           CALL SP1 USING HEADER-TYPE PARM-USER STATS-HEADER-LIGNE
+           DISPLAY STATS-HEADER-LIGNE
+           .
